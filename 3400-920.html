@@ -1,0 +1,969 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head -->
+    <title>Device Config Converter</title>
+
+	<!-- © James Washington 1970-2400 -->
+	<!-- 
+	Todo:  Test, Debug, test, debug. Clean-up and slim it up.
+	
+	Version 0.1.2 - 07/10/2018
+		Added new ACLS
+	
+	Version 0.1.1 - 02/02/2018
+		Updated color and images to 2018 standards.
+	
+	Version 0.1.0 - 08/08/2017
+		Added the scheduler-mode 16-priority line to the SARF-SARM converter after much googlefu (7 hours) to keep it from adding to all QOS based lines
+	
+	Version 0.0.9 - 07/31/2017
+		Added in a SONUS CLI auto-formatter for quick remove/add functions of a number within SONUS
+	
+	Version 0.0.8 - 07/24/2017
+		Finished work on SAR-F to SAR-M.
+	
+	Version 0.0.7 - 07/21/2017
+		began work on ALU SAR-F to SAR-M converter
+	
+	Version 0.0.6 - 07/20/2017
+		Verbiage. Removed unecessary tab linkage since this is a single page any way.
+	
+	Version 0.0.5 - 07/18/2017
+		Added a magic copy to clipboard button that copies the config output to your clipboard, automagically.
+	
+	Version 0.0.4 - 07/14/2017
+		Got access to the 920 in the lab.
+		Fixed missing line breaks, fixed labling for service types, fixed duplicated interface features (tagging/speed policy etc..), fixed PRI bandwidth setting.
+			
+	Version 0.0.3 - 07/13/2017
+		Added a required field validator.
+		Cleaned up the appearances of the entry fields with spacing and color.
+		Added the hostname field.
+	
+	Version 0.0.2 - 07/12/2017
+		Corrected speed policy naming conventions to be more in line with 2017 standards.
+		Few tweaks here and there for better efficiency.
+			
+	Version 0.0.1 - 07/11/2017
+		Hid unused interfaces behind a drop down button.
+		Made unused sections produce a ! in the config.
+		Finished the config completely.
+		Made RJ-45 & the Service type be a selectable value.
+	
+	Version 0.0.0 - 07/05/2017 - Initial Creation
+		Made this converter for the 3400 to 920 conversions we're beginning to see as gear gets swapped out, got most of the config in place.
+	
+	-->
+	
+	
+    <!-- Bootstrap CSS-->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+    <!--[if lt IE 9]>
+     <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+     <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+	
+    <style>
+      h2 {
+        font-weight: bold;
+      }
+
+      .panel {
+        background-color: #eee;
+        box-shadow: none;
+	  }
+      .style1 {
+        color: rgb(7,30,68);
+        text-align: center;
+      }
+	  
+      .nav-tabs > li.active > a,
+      .nav-tabs > li.active > a:focus,
+      .nav-tabs > li.active > a:hover{
+        background-color: #eee !important;
+      }
+    </style>
+	
+
+
+	  
+	  
+	  
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.js" type="text/javascript"></script>
+<style>
+.abcdproduct {
+
+}
+
+.product_inner {
+    display:none;
+
+}
+
+</style>
+<script type="text/javascript">
+
+$(document).ready(function() {
+	$('.product p a').on('click', function() {
+		$(this).parent('p').siblings('.product_inner').slideToggle(300);
+	}); // end click
+}); 
+
+</script>
+<script>
+var today = new Date();
+var dd = today.getDate();
+var mm = today.getMonth()+1; //January is 0!
+
+var yyyy = today.getFullYear();
+if(dd<10){
+    dd='0'+dd;
+} 
+if(mm<10){
+    mm='0'+mm;
+} 
+var today = mm+'/'+dd+'/'+yyyy;
+
+</script>
+
+<script>
+      
+	function selectElementContents(el) 
+	{
+    // Copy textarea, pre, div, etc.
+	if (document.body.createTextRange) {
+        // IE 
+        var textRange = document.body.createTextRange();
+        textRange.moveToElementText(el);
+        textRange.select();
+        textRange.execCommand("Copy");     
+		}
+	else if (window.getSelection && document.createRange) {
+        // non-IE
+        var range = document.createRange();
+        range.selectNodeContents(el);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range); 
+        try {  
+		    var successful = document.execCommand('copy');  
+		    var msg = successful ? 'successful' : 'unsuccessful';  
+		    console.log('Copy command was ' + msg);  
+			} catch(err) {  
+		    console.log('Oops, unable to copy');  
+				} 
+		}
+	} // end function selectElementContents(el) 
+
+function make_copy_button(el)
+	{
+	var copy_btn = document.createElement('input');
+	copy_btn.type = "button";
+	el.parentNode.insertBefore(copy_btn, el.nextSibling);
+	copy_btn.onclick = function() { selectElementContents(el); };
+	
+	if (document.queryCommandSupported("copy") || parseInt(navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./)[2]) >= 42)
+	{
+		// Copy works with IE 4+, Chrome 42+, Firefox 41+, Opera 29+
+		copy_btn.value = "Copy to Clipboard";
+	}	
+	else
+	{
+		// Select only for Safari and older Chrome, Firefox and Opera
+		copy_btn.value = "Select All (then press CTRL+C to Copy)";
+	}
+	}
+/* Note: document.queryCommandSupported("copy") should return "true" on browsers that support copy
+	but there was a bug in Chrome versions 42 to 47 that makes it return "false".  So in those
+	versions of Chrome feature detection does not work!
+	See https://code.google.com/p/chromium/issues/detail?id=476508
+*/
+
+make_copy_button(document.getElementById("markup"));
+
+</script>
+
+
+<script>
+
+var observe;
+if (window.attachEvent) {
+    observe = function (element, event, handler) {
+        element.attachEvent('on'+event, handler);
+    };
+}
+else {
+    observe = function (element, event, handler) {
+        element.addEventListener(event, handler, false);
+    };
+}
+function init () {
+    var text = document.getElementById('text');
+    function resize () {
+        text.style.height = 'auto';
+        text.style.height = text.scrollHeight+'px';
+    }
+    /* 0-timeout to get the already changed text */
+    function delayedResize () {
+        window.setTimeout(resize, 0);
+    }
+    observe(text, 'change',  resize);
+    observe(text, 'cut',     delayedResize);
+    observe(text, 'paste',   delayedResize);
+    observe(text, 'drop',    delayedResize);
+    observe(text, 'keydown', delayedResize);
+
+    text.focus();
+    text.select();
+    resize();
+}
+
+</script>
+
+<style>
+
+textarea {
+    border: 0 none black;
+    overflow: hidden;
+    padding: 5;
+    outline: ridge;
+    background-color: #WHITE;
+	width: 500px;
+}
+
+</style>
+
+<style>
+p {
+    display: block;
+    margin-top: 0em;
+    margin-bottom: 0em;
+    margin-left: 0;
+    margin-right: 0;
+}
+</style>
+
+
+  </head>
+ 
+  <body >
+    <div class="container">
+      <div class="header clearfix">
+		<!-- Old image
+	    <center><img src="YOUR IMAGE HERE" width="400"></center>
+		<-->
+		<center><img src="YOUR IMAGE HERE" width="400"></center>
+        <p><h2 class="style1">Advanced Services Device Converters</h2><center>v.0.1.2 - 07/10/2018</center></p>
+        
+      </div>
+	 <!-- When adding or removing a switch, create a li under navTabs for the device and also add/update the switch's tabpanel div with a nested div for each config type. -->
+     <!-- Nav tabs -->
+     <div id="navTabs">
+       <ul id="switch" class="nav nav-tabs" role="tablist">
+         <li id="me3400toasr920" role="presentation" class="dropdown">
+          <a href="#me3400toasr920base" id="me3400toasr920tab" class="dropdown-toggle" data-toggle="dropdown" aria-controls="me3400toasr920-contents" aria-expanded="false">
+		  ME3400 to ASR920 </a>
+         </li>
+		 <li id="sarftosarm" role="presentation" class="dropdown">
+          <a href="#sarftosarmbase" id="sarftosarmtab" class="dropdown-toggle" data-toggle="dropdown" aria-controls="sarftosarm-contents" aria-expanded="false">
+		  SAR-F to SAR-M </a>
+         </li>
+		 <li id="sonuscli" role="presentation" class="dropdown">
+          <a href="#sonusclibase" id="sonusclitab" class="dropdown-toggle" data-toggle="dropdown" aria-controls="sonuscli-contents" aria-expanded="false">
+		  Sonus CLI Formatter </a>
+         </li>
+		</ul>
+	</div>
+
+		 
+		 
+		 
+		 
+     <div class="jumbotron">
+	  
+	  <!-- Basic Guidelines -->
+	  <div id="guidelines">
+		<h4>Helpful Hints:</h4>
+		<ul><h5>
+			<li>You can select between a 3400 to 920 or SAR-F to SAR-M conversion above</li>
+			</h5></ul>
+	  </div>
+	  
+	  <div id="asr920guidelines">
+		<h4>ASR 920 guidelines:</h4>
+		<ul><h5>
+			<li>Only add entries to interfaces we are using for your customer</li>
+			<li>If the generate button doesn't work, set all interfaces to PRI and then reselect the appropriate service for your interface</li>
+			<li>Don't attempt to drop the whole config at once, pace yourself</li>
+			</h5></ul>
+	  </div>
+	  
+	  <div id="sarftosarmguidelines">
+	  	<h4>SAR-F to SAR-M guidelines:</h4>
+		<ul><h5>
+			<li>Update the below to your customers relevant interfaces and the device name
+			<li>You must use SAM5620 to get the 7705 SAR-F configuration if you haven't pulled it from the existing device</li>
+			<li><div class="product">
+    <p><a href="javascript:hideshow(document.getElementById('999'))"><button class="btn btn-primary btn-sm" type="button">
+                     <span aria-hidden="true"></span> How to get the Config from SAM5620
+                     </button></a></p><div class="product_inner">1.	Log into the Sam Client.<br>
+						2.	Click on Administration>>NE Maintenance>>Backup/Restore.<br>
+						3.	Click on the Backup/Restore Status Tab.<br>
+						4.	In the Name column, enter the hostname and click on SEARCH.<br>
+						5.	Double-Click on the entry that populates, a new dialogue box opens up.<br>
+						6.	Click on the Back up tab.<br>
+						7.	Select the most recent back up.<br>
+						8.	Click on Export.<br>
+						9.	Save to your PC (The Folder name is the IP of the Host).<br>
+						10.	Drill down to the CF3 folder, you will find the router’s configuration file and its current BOF.cfg file as well.<br>
+						<br></div></div></li>
+			</h5></ul>
+	  </div>
+	  
+	  <div id="sonuscliguidelines">
+		<h4>Sonus CLI guidelines:</h4>
+		<ul><h5>
+			<li>Paste the numbers you wish to build in sonus below</li>
+			<li>This is only for numbers that need to be built to point to Broadsoft</li>
+			</h5></ul>
+	  </div>
+	  
+
+<hr COLOR="rgb(7,30,68)">
+
+</font>
+
+      <div id="configselect" class="panel-body">
+       
+	   <!-- Tab panes -->
+	   
+        <!-- 3400 to ASR 920 -->
+        <div role="tabpanel" class="tab-pane active" id="me3400to920">
+		  <div id="me3400toasr920base">
+          <h3><center>ME-3400 to ASR 920 Converter</center></h3> 
+          <form name=me3400toasr920gen>
+
+		  <center><font color="RED">These options must always be filled out</font></center>
+			 <div class="row">
+				<div class="col-md-2"></div>
+                <div class="form-group col-md-2">	
+                  <label for="TrunkPort">Trunk:</label>
+                  <input name=input5 class="form-control" value="Te0/0/5">
+                </div>
+				<div class="form-group col-md-2">	
+                  <label for="TrunkPort">Upstream Name:</label>
+                  <input name=input25 class="form-control">
+                </div>
+				<div class="form-group col-md-2">	
+                  <label for="TrunkPort">Upstream Port:</label>
+                  <input name=input26 class="form-control">
+                </div>
+                <div class="form-group col-md-2">
+                  <label for="SecondIP">IP Route(Gateway):</label>
+                  <input name=input4 class="form-control" >
+                </div>				
+                <div class="col-md-2"></div>
+             </div>
+
+		<div class="row">
+            <div class="col-md-2"></div>
+				<div class="form-group col-md-2">	
+					<label for="FirstPort">Mngmt IP:</label>
+					<input name=input1 class="form-control" >
+                </div>
+                <div class="form-group col-md-2">
+                  <label for="FirstIP">Mngmt Subnet:</label>
+                  <input name=input2 class="form-control" >
+                </div>
+				<div class="form-group col-md-2">	
+                  <label for="SecondPort">Mngmt VLAN:</label>
+                  <input name=input3 class="form-control" >
+				</div>
+                <div class="form-group col-md-2">	
+                  <label for="SecondPort">Host-Name:</label>
+                  <input name=hostname class="form-control" >
+				</div>
+                <div class="col-md-2"></div>
+		</div>
+
+<div class="product">
+    <p><a href="javascript:hideshow(document.getElementById('001'))"><button class="btn btn-primary btn-sm" type="button">
+                     <span aria-hidden="true"></span> Gi0/0/0
+                     </button></a></p>
+	    <div class="product_inner">
+			 <div class="row">
+                <div class="col-md-1"></div>
+                <div class="form-group col-md-2">
+                  <label for="SecondPort">VLAN:</label>
+                  <input name=int000vlan class="form-control" >
+                </div>
+                <div class="form-group col-md-2">
+                  <label for="SecondIP">Speed:</label>
+                  <input name=int000speed class="form-control" >
+                </div>
+                <div class="form-group col-md-2">
+                  <label for="SecondPort">EVC/CID:</label>
+                  <input name=int000evc class="form-control" >
+                </div>
+                <div class="form-group col-md-2">
+                  <label for="SecondPort">RJ-45?:</label>
+                  <DIV class="btn-group" data-toggle="buttons">
+					<LABEL class="btn btn-primary">
+					<INPUT name="int000RJ45" id="int000RJ45YES" type="radio" checked="" value="YES" >YES</LABEL>
+					<LABEL class="btn btn-primary">
+					<INPUT name="int000RJ45" id="int000RJ45NO" type="radio" value="NO">NO</LABEL>
+				  </DIV>
+                </div>
+                <div class="form-group col-md-3">
+					<label for="SecondPort">Select Service:</label>                  
+					<DIV class="btn-group" data-toggle="buttons">
+						<LABEL class="btn btn-primary">
+						<INPUT name="int000service" id="int000serviceOBI" type="radio" value="OBI" >OBI</LABEL>
+						<LABEL class="btn btn-primary">
+						<INPUT name="int000service" id="int000serviceWAN" type="radio" value="WAN">WAN</LABEL>
+						<LABEL class="btn btn-primary">
+						<INPUT name="int000service" id="int000servicePRI" type="radio" checked="" value="PRI">PRI</LABEL>
+					</DIV>
+				</div>				
+                <div class="col-md-2"></div>
+             </div>
+		</div>
+</div>
+
+
+
+<div class="product">
+    <p><a href="javascript:hideshow(document.getElementById('001'))"><button class="btn btn-primary btn-sm" type="button">
+                     <span aria-hidden="true"></span> Gi0/0/1
+                     </button></a></p>
+	    <div class="product_inner">
+			<div class="row">
+                <div class="col-md-1"></div>
+                <div class="form-group col-md-2">
+                  <label for="SecondPort">VLAN:</label>
+                  <input name=int001vlan class="form-control" >
+                </div>
+                <div class="form-group col-md-2">
+                  <label for="SecondIP">Speed:</label>
+                  <input name=int001speed class="form-control" >
+                </div>
+                <div class="form-group col-md-2">
+                  <label for="SecondPort">EVC/CID:</label>
+                  <input name=int001evc class="form-control" >
+                </div>
+                <div class="form-group col-md-2">
+                  <label for="SecondPort">RJ-45?:</label>
+                  <DIV class="btn-group" data-toggle="buttons">
+					<LABEL class="btn btn-primary">
+					<INPUT name="int001RJ45" id="int001RJ45YES" type="radio" checked="" value="YES" >YES</LABEL>
+					<LABEL class="btn btn-primary">
+					<INPUT name="int001RJ45" id="int001RJ45NO" type="radio" value="NO">NO</LABEL>
+				  </DIV>
+                </div>
+                <div class="form-group col-md-3">
+					<label for="SecondPort">Select Service:</label>                  
+					<DIV class="btn-group" data-toggle="buttons">
+						<LABEL class="btn btn-primary">
+						<INPUT name="int001service" id="int001serviceOBI" type="radio" value="OBI" >OBI</LABEL>
+						<LABEL class="btn btn-primary">
+						<INPUT name="int001service" id="int001serviceWAN" type="radio" value="WAN">WAN</LABEL>
+						<LABEL class="btn btn-primary">
+						<INPUT name="int001service" id="int001servicePRI" type="radio" checked="" value="PRI">PRI</LABEL>
+					</DIV>
+				</div>				
+                <div class="col-md-2"></div>
+             </div>
+		</div>
+</div>
+			 
+<div class="product">
+    <p><a href="javascript:hideshow(document.getElementById('001'))"><button class="btn btn-primary btn-sm" type="button">
+                     <span aria-hidden="true"></span> Te0/0/2
+                     </button></a></p>
+	    <div class="product_inner">		 
+			 <div class="row">
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-2">
+                  <label for="SecondPort">VLAN:</label>
+                  <input name=int002vlan class="form-control" >
+                </div>
+                <div class="form-group col-md-2">
+                  <label for="SecondIP">Speed:</label>
+                  <input name=int002speed class="form-control" >
+                </div>
+				<div class="form-group col-md-2">
+                  <label for="SecondPort">EVC/CID:</label>
+                  <input name=int002evc class="form-control" >
+                </div>
+                <div class="form-group col-md-3">
+					<label for="SecondPort">Select Service:</label>                  
+					<DIV class="btn-group" data-toggle="buttons">
+						<LABEL class="btn btn-primary">
+						<INPUT name="int002service" id="int002serviceOBI" type="radio" value="OBI" >OBI</LABEL>
+						<LABEL class="btn btn-primary">
+						<INPUT name="int002service" id="int002serviceWAN" type="radio" value="WAN">WAN</LABEL>
+						<LABEL class="btn btn-primary">
+						<INPUT name="int002service" id="int002servicePRI" type="radio" checked="" value="PRI">PRI</LABEL>
+					</DIV>
+				</div>					
+                <div class="col-md-2"></div>
+             </div>
+		</div>
+</div>
+
+<div class="product">
+    <p><a href="javascript:hideshow(document.getElementById('001'))"><button class="btn btn-primary btn-sm" type="button">
+                     <span aria-hidden="true"></span> Te0/0/3
+                     </button></a></p>
+	    <div class="product_inner">	
+			 <div class="row">
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-2">
+                  <label for="SecondPort">VLAN:</label>
+                  <input name=int003vlan class="form-control" >
+                </div>
+                <div class="form-group col-md-2">
+                  <label for="SecondIP">Speed:</label>
+                  <input name=int003speed class="form-control" >
+                </div>
+                <div class="form-group col-md-2">
+                  <label for="SecondPort">EVC/CID:</label>
+                  <input name=int003evc class="form-control" >
+                </div>
+                <div class="form-group col-md-3">
+					<label for="SecondPort">Select Service:</label>                  
+					<DIV class="btn-group" data-toggle="buttons">
+						<LABEL class="btn btn-primary">
+						<INPUT name="int003service" id="int003serviceOBI" type="radio" value="OBI" >OBI</LABEL>
+						<LABEL class="btn btn-primary">
+						<INPUT name="int003service" id="int003serviceWAN" type="radio" value="WAN">WAN</LABEL>
+						<LABEL class="btn btn-primary">
+						<INPUT name="int003service" id="int003servicePRI" type="radio" checked="" value="PRI">PRI</LABEL>
+					</DIV>
+				</div>				
+                <div class="col-md-2"></div>
+             </div>
+		</div>
+</div>
+
+<div class="product">
+    <p><a href="javascript:hideshow(document.getElementById('001'))"><button class="btn btn-primary btn-sm" type="button">
+                     <span aria-hidden="true"></span> Te0/0/4
+                     </button></a></p>
+	    <div class="product_inner">		 
+			 <div class="row">
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-2">
+                  <label for="SecondPort">VLAN:</label>
+                  <input name=int004vlan class="form-control" >
+                </div>
+                <div class="form-group col-md-2">
+                  <label for="SecondIP">Speed:</label>
+                  <input name=int004speed class="form-control" >
+                </div>
+                <div class="form-group col-md-2">
+                  <label for="SecondPort">EVC/CID:</label>
+                  <input name=int004evc class="form-control" >
+                </div>	
+                <div class="form-group col-md-3">
+					<label for="SecondPort">Select Service:</label>                  
+					<DIV class="btn-group" data-toggle="buttons">
+						<LABEL class="btn btn-primary">
+						<INPUT name="int004service" id="int004serviceOBI" type="radio" value="OBI" >OBI</LABEL>
+						<LABEL class="btn btn-primary">
+						<INPUT name="int004service" id="int004serviceWAN" type="radio" value="WAN">WAN</LABEL>
+						<LABEL class="btn btn-primary">
+						<INPUT name="int004service" id="int004servicePRI" type="radio" checked="" value="PRI">PRI</LABEL>
+					</DIV>
+				</div>					
+                <div class="col-md-2"></div>
+             </div>
+		</div>
+</div>
+             <div class="row">
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4"></div>
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4">
+                   <!-- "Generate" Button -->
+                   <div class="generateCode">
+                     <button class="btn btn-primary btn-sm" type="button" onclick=me3400toasr920config() value="Multiple Rules">
+                     <span class="" aria-hidden="true"></span> Generate Configuration
+                     </button>
+                   </div>
+                </div>
+             </div>
+          </form>
+		  </div>
+	  
+</div>
+
+<!-- SARF to SARM stuff -->
+
+       <!-- SARF to SARM -->
+        <div role="tabpanel" class="tab-pane active" id="sarftosarm">
+          <div id="sarftosarmbase">
+          <h3><center>SAR-F to SAR-M Converter</center></h3> 
+          <form name=sarftosarmgen>
+		    
+			 <div class="row">
+				<div class="col-md-0"></div>
+                <div class="form-group col-md-2">	
+                  <label for="TrunkPort">Old Trunk:</label>
+                  <input name=oldsarhfp class="form-control" value="1/2/8">
+                </div>
+                <div class="form-group col-md-2">	
+                  <label for="TrunkPort">New Trunk:</label>
+                  <input name=newsarhfp class="form-control" value="1/1/1">
+                </div>
+                <div class="form-group col-md-2">	
+                  <label for="TrunkPort">Old CFP:</label>
+                  <input name=oldsarcfp class="form-control" value="1/2/7">
+                </div>
+                <div class="form-group col-md-2">	
+                  <label for="TrunkPort">New CFP:</label>
+                  <input name=newsarcfp class="form-control" value="1/1/5">
+                </div>	
+                <div class="form-group col-md-2">	
+                  <label for="TrunkPort">Device name:</label>
+                  <input name=devicename class="form-control" value="DeviceName">
+                </div>					
+                <div class="col-md-0"></div>
+             </div>		
+<label for="sarfconfig">Paste Existing Sar-F Config from "Configure" to "Exit All":</label><br>
+          </form>
+	  
+</div>
+<!-- End SARF to SARFM stuff -->
+
+        <!-- sonus autocli formater -->
+        <div role="tabpanel" class="tab-pane active" id="sonuscli">
+           <!-- sonus cli autoformater numbers  -->
+		  <div id="sonusclibase">
+          <h3><center>Sonus CLI number formatter</center></h3> 
+          <form name=sonuscligen>
+      
+		
+			<label for="sonus">Paste numbers:</label><br>
+			</div>	
+          </form>
+		  </div>
+	  
+</div>
+	  <div  id="text">
+			 <div class="row">
+				<div class="col-md-0"></div>
+                <div class="form-group col-md-5">	
+                  <textarea id="sarfm"  rows="2" style="height:2em;"></textarea>
+                </div>
+                <div class="col-md-2"></div>
+            </div>
+			</div>
+	  <!-- Commands Output -->
+	  
+	  
+	<div>
+	 <div id="copybutton">
+	  <div class="row">
+	   <div class="col-md-0"></div>
+		<input type="button" onclick="selectElementContents(document.getElementById('test'))" unselectable="on" value="Copy to Clipboard">
+		<pre id="test"><div id="commOut" class="col-md-20"></div></pre>
+        <div class="col-md-2"></div>
+	  </div>
+	  </div>
+	</div>
+      
+	  	<div>
+	 <div id="copybutton2">
+	  <div class="row">
+	   <div class="col-md-0"></div>
+		<input type="button" onclick="selectElementContents(document.getElementById('test2'))" unselectable="on" value="Copy to Clipboard">
+		<pre id="test2"><div id="commOut2" class="col-md-20"></div></pre>
+        <div class="col-md-2"></div>
+	  </div>
+	  </div>
+	</div>
+	
+	</div>
+	  
+	  
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+	
+    <!-- Bootstrap Javascript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous">
+	</script>
+	
+	<!-- Custom Javascript -->
+    <!-- When adding or removing a switch, add/update switch script, Navigation script, and switch specific scripts under navigation. -->
+ <script>
+ 
+ <!-- ME3400 to ASR 920 Script -->
+ 
+ 
+ function me3400toasr920config() {
+
+	{
+	if (document.me3400toasr920gen.input5.value == "" || document.me3400toasr920gen.input25.value == "" || document.me3400toasr920gen.input26.value == "" || document.me3400toasr920gen.input4.value == "" || document.me3400toasr920gen.input1.value == "" || document.me3400toasr920gen.input2.value == "" || document.me3400toasr920gen.input3.value == "" || document.me3400toasr920gen.hostname.value == "" )
+	{
+	alert('A required field is blank, please check your work.'); 
+	return false;
+	}
+	}
+		
+   if (document.me3400toasr920gen.int000speed.value > 909 ) speed1 = "1000";
+   else if (document.me3400toasr920gen.int000speed.value == "" ) speed1 = "";
+   else speed1 = Math.round(document.me3400toasr920gen.int000speed.value*1.1);
+   if (document.me3400toasr920gen.int001speed.value > 909 ) speed2 = "1000";
+   else speed2 = Math.round(document.me3400toasr920gen.int001speed.value*1.1);
+   if (document.me3400toasr920gen.int002speed.value > 9090 ) speed3 = "10000";
+   else speed3 = Math.round(document.me3400toasr920gen.int002speed.value*1.1);
+   if (document.me3400toasr920gen.int003speed.value > 9090 ) speed4 = "10000";
+   else speed4 = Math.round(document.me3400toasr920gen.int003speed.value*1.1);
+   if (document.me3400toasr920gen.int004speed.value > 9090 ) speed5 = "10000";
+   else speed5 = Math.round(document.me3400toasr920gen.int004speed.value*1.1);
+   if (document.me3400toasr920gen.int000speed.value > 1000 ) pmap1 = (document.me3400toasr920gen.int000speed.value/1000) + "GBE";
+   else pmap1 = (document.me3400toasr920gen.int000speed.value) + "M";
+   if (document.me3400toasr920gen.int001speed.value > 1000 ) pmap2 = (document.me3400toasr920gen.int001speed.value/1000) + "GBE";
+   else pmap2 = (document.me3400toasr920gen.int001speed.value) + "M";
+   if (document.me3400toasr920gen.int002speed.value > 1000 ) pmap3 = (document.me3400toasr920gen.int002speed.value/1000) + "GBE";
+   else pmap3 = (document.me3400toasr920gen.int002speed.value) + "M";
+   if (document.me3400toasr920gen.int003speed.value > 1000 ) pmap4 = (document.me3400toasr920gen.int003speed.value/1000) + "GBE";
+   else pmap4 = (document.me3400toasr920gen.int003speed.value) + "M";
+   if (document.me3400toasr920gen.int004speed.value > 1000 ) pmap5 = (document.me3400toasr920gen.int004speed.value/1000) + "GBE";
+   else pmap5 = (document.me3400toasr920gen.int004speed.value) + "M";
+   if (document.me3400toasr920gen.int000evc.value == "" ) evcid0 = "!";
+   else evcid0 = "ethernet evc " + (document.me3400toasr920gen.int000evc.value);
+   if (document.me3400toasr920gen.int001evc.value == "" ) evcid1 = "!";
+   else evcid1 = "ethernet evc " + (document.me3400toasr920gen.int001evc.value);
+   if (document.me3400toasr920gen.int002evc.value == "" ) evcid2 = "!";
+   else evcid2 = "ethernet evc " + (document.me3400toasr920gen.int002evc.value);
+   if (document.me3400toasr920gen.int003evc.value == "" ) evcid3 = "!";
+   else evcid3 = "ethernet evc " + (document.me3400toasr920gen.int003evc.value);
+   if (document.me3400toasr920gen.int004evc.value == "" ) evcid4 = "!";
+   else evcid4 = "ethernet evc " + (document.me3400toasr920gen.int004evc.value);
+   
+   if (document.me3400toasr920gen.int000RJ45YES.checked) mediatype1 = "media-type rj45";
+   if (document.me3400toasr920gen.int000RJ45NO.checked) mediatype1 = "!";
+   if (document.me3400toasr920gen.int001RJ45YES.checked) mediatype2 = "media-type rj45";
+   if (document.me3400toasr920gen.int001RJ45NO.checked) mediatype2 = "!";
+   if (document.me3400toasr920gen.int000servicePRI.checked) pri1 = "no negotiation auto<br>speed 100<br>duplex full";
+   else pri1 = "!";
+   if (document.me3400toasr920gen.int000servicePRI.checked) l3pri1 = "l3pri";
+   if (document.me3400toasr920gen.int000serviceOBI.checked) l3pri1 = "l3obi";
+   if (document.me3400toasr920gen.int000serviceWAN.checked) l3pri1 = "EPL";
+   if (document.me3400toasr920gen.int000servicePRI.checked || document.me3400toasr920gen.int000serviceOBI.checked) encapsulation1 = "encapsulation untagged";
+   if (document.me3400toasr920gen.int000serviceWAN.checked) encapsulation1 = "encapsulation default<br>l2protocol tunnel";
+
+   if (document.me3400toasr920gen.int001servicePRI.checked) pri2 = "no negotiation auto<br>speed 100<br>duplex full";
+   else pri2 = "!";
+   if (document.me3400toasr920gen.int001servicePRI.checked) l3pri2 = "l3pri";
+   if (document.me3400toasr920gen.int001serviceOBI.checked) l3pri2 = "l3obi";
+   if (document.me3400toasr920gen.int001serviceWAN.checked) l3pri2 = "EPL";
+   if (document.me3400toasr920gen.int001servicePRI.checked || document.me3400toasr920gen.int001serviceOBI.checked) encapsulation2 = "encapsulation untagged";
+   if (document.me3400toasr920gen.int001serviceWAN.checked) encapsulation2 = "encapsulation default<br>l2protocol tunnel";
+
+   if (document.me3400toasr920gen.int002servicePRI.checked) l3pri3 = "l3pri";
+   if (document.me3400toasr920gen.int002serviceOBI.checked) l3pri3 = "l3obi";
+   if (document.me3400toasr920gen.int002serviceWAN.checked) l3pri3 = "EPL";
+   if (document.me3400toasr920gen.int002servicePRI.checked || document.me3400toasr920gen.int002serviceOBI.checked) encapsulation3 = "encapsulation untagged";
+   if (document.me3400toasr920gen.int002serviceWAN.checked)  encapsulation3 = "encapsulation default<br>l2protocol tunnel";
+
+   if (document.me3400toasr920gen.int003servicePRI.checked) l3pri4 = "l3pri";
+   if (document.me3400toasr920gen.int003serviceOBI.checked) l3pri4 = "l3obi";
+   if (document.me3400toasr920gen.int003serviceWAN.checked) l3pri4 = "EPL";
+   if (document.me3400toasr920gen.int003servicePRI.checked || document.me3400toasr920gen.int003serviceOBI.checked) encapsulation4 = "encapsulation untagged";
+   if (document.me3400toasr920gen.int003serviceWAN.checked) encapsulation4 = "encapsulation default<br>l2protocol tunnel";
+
+   if (document.me3400toasr920gen.int003servicePRI.checked) l3pri5 = "l3pri";
+   if (document.me3400toasr920gen.int003serviceOBI.checked) l3pri5 = "l3obi";
+   if (document.me3400toasr920gen.int003serviceWAN.checked) l3pri5 = "EPL";
+   if (document.me3400toasr920gen.int003servicePRI.checked || document.me3400toasr920gen.int003serviceOBI.checked) encapsulation5 = "encapsulation untagged";
+   if (document.me3400toasr920gen.int003serviceWAN.checked) encapsulation5 = "encapsulation default<br>l2protocol tunnel";
+   
+   if (document.me3400toasr920gen.int000serviceOBI.checked) int000service = "OBI";
+   if (document.me3400toasr920gen.int000serviceWAN.checked) int000service = "CBS";
+   if (document.me3400toasr920gen.int000servicePRI.checked) trunksvi0speed = "!";
+   else trunksvi0speed = "service-policy input QSP-" + int000service + "-" + pmap1 + "-HFP-IN-MAP";
+   if (document.me3400toasr920gen.int000servicePRI.checked) int000speed = "!";
+   else if (document.me3400toasr920gen.int000vlan.value != "") int000speed = "policy-map QSP-" + int000service + "-" + pmap1 + "-CFP-IN-MAP<br>Description marks bgp cos and qos-group to 6; other traffic cos, qos-group, and dscp to 0; polices to cir speed<br>Class QC-BGP-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class QC-BGPv6-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class class-default<br>police cir " + speed1 + "000000 bc 343750<br>conform-action set-cos-transmit 0<br>conform-action set-qos-transmit 0<br>conform-action set-dscp-transmit default<br>exceed-action drop<br>policy-map QSP-" + int000service + "-" + pmap1 + "-HFP-IN-MAP<br>Description marks bgp qos-group to 6 other traffic into default queue, polices to cir speed<br>Class QC-BGP-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class QC-BGPv6-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class class-default<br>police cir " + speed1 + "000000 bc 343750<br>conform-action set-dscp-transmit default<br>exceed-action drop<br>!<br>";
+   
+   if (document.me3400toasr920gen.int001serviceOBI.checked) int001service = "OBI";
+   if (document.me3400toasr920gen.int001serviceWAN.checked) int001service = "CBS";
+   if (document.me3400toasr920gen.int001servicePRI.checked) trunksvi1speed = "!";
+   else trunksvi1speed = "service-policy input QSP-" + int001service + "-" + pmap2 + "-HFP-IN-MAP";
+   if (document.me3400toasr920gen.int001servicePRI.checked) int001speed = "!";
+   else if (document.me3400toasr920gen.int001vlan.value != "" ) int001speed = "policy-map QSP-" + int001service + "-" + pmap2 + "-CFP-IN-MAP<br>Description marks bgp cos and qos-group to 6; other traffic cos, qos-group, and dscp to 0; polices to cir speed<br>Class QC-BGP-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class QC-BGPv6-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class class-default<br>police cir " + speed2 + "000000 bc 343750<br>conform-action set-cos-transmit 0<br>conform-action set-qos-transmit 0<br>conform-action set-dscp-transmit default<br>exceed-action drop<br>policy-map QSP-" + int001service + "-" + pmap2 + "-HFP-IN-MAP<br>Description marks bgp qos-group to 6 other traffic into default queue, polices to cir speed<br>Class QC-BGP-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class QC-BGPv6-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class class-default<br>police cir " + speed2 + "000000 bc 343750<br>conform-action set-dscp-transmit default<br>exceed-action drop<br>!<br>";
+   
+   if (document.me3400toasr920gen.int002serviceOBI.checked) int002service = "OBI";
+   if (document.me3400toasr920gen.int002serviceWAN.checked) int002service = "CBS";
+   if (document.me3400toasr920gen.int002servicePRI.checked) trunksvi2speed = "!";
+   else trunksvi2speed = "service-policy input QSP-" + int002service + "-" + pmap3 + "-HFP-IN-MAP";
+   if (document.me3400toasr920gen.int002servicePRI.checked) int002speed = "!";
+   else if (document.me3400toasr920gen.int002vlan.value != "" ) int002speed = "policy-map QSP-" + int002service + "-" + pmap3 + "-CFP-IN-MAP<br>Description marks bgp cos and qos-group to 6; other traffic cos, qos-group, and dscp to 0; polices to cir speed<br>Class QC-BGP-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class QC-BGPv6-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class class-default<br>police cir " + speed3 + "000000 bc 343750<br>conform-action set-cos-transmit 0<br>conform-action set-qos-transmit 0<br>conform-action set-dscp-transmit default<br>exceed-action drop<br>policy-map QSP-" + int002service + "-" + pmap3 + "-HFP-IN-MAP<br>Description marks bgp qos-group to 6 other traffic into default queue, polices to cir speed<br>Class QC-BGP-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class QC-BGPv6-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class class-default<br>police cir " + speed3 + "000000 bc 343750<br>conform-action set-dscp-transmit default<br>exceed-action drop<br>!<br>";
+   
+   if (document.me3400toasr920gen.int003serviceOBI.checked) int003service = "OBI";
+   if (document.me3400toasr920gen.int003serviceWAN.checked) int003service = "CBS";
+   if (document.me3400toasr920gen.int003servicePRI.checked) trunksvi3speed = "!";
+   else trunksvi3speed = "service-policy input QSP-" + int003service + "-" + pmap4 + "-HFP-IN-MAP";
+   if (document.me3400toasr920gen.int003servicePRI.checked) int003speed = "!";
+   else if (document.me3400toasr920gen.int003vlan.value != "" ) int003speed ="policy-map QSP-" + int003service + "-" + pmap4 + "-CFP-IN-MAP<br>Description marks bgp cos and qos-group to 6; other traffic cos, qos-group, and dscp to 0; polices to cir speed<br>Class QC-BGP-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class QC-BGPv6-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class class-default<br>police cir " + speed4 + "000000 bc 343750<br>conform-action set-cos-transmit 0<br>conform-action set-qos-transmit 0<br>conform-action set-dscp-transmit default<br>exceed-action drop<br>policy-map QSP-" + int003service + "-" + pmap4 + "-HFP-IN-MAP<br>Description marks bgp qos-group to 6 other traffic into default queue, polices to cir speed<br>Class QC-BGP-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class QC-BGPv6-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class class-default<br>police cir " + speed4 + "000000 bc 343750<br>conform-action set-dscp-transmit default<br>exceed-action drop<br>!<br>";
+   
+   if (document.me3400toasr920gen.int004serviceOBI.checked) int004service = "OBI";
+   if (document.me3400toasr920gen.int004serviceWAN.checked) int004service = "CBS";
+   if (document.me3400toasr920gen.int004servicePRI.checked) trunksvi4speed = "!";
+   else trunksvi4speed = "service-policy input QSP-" + int004service + "-" + pmap5 + "-HFP-IN-MAP";
+   if (document.me3400toasr920gen.int004servicePRI.checked) int004speed = "!";
+   else if (document.me3400toasr920gen.int004vlan.value != "" ) int004speed ="policy-map QSP-" + int004service + "-" + pmap5 + "-CFP-IN-MAP<br>Description marks bgp cos and qos-group to 6; other traffic cos, qos-group, and dscp to 0; polices to cir speed<br>Class QC-BGP-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class QC-BGPv6-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class class-default<br>police cir " + speed5 + "000000 bc 343750<br>conform-action set-cos-transmit 0<br>conform-action set-qos-transmit 0<br>conform-action set-dscp-transmit default<br>exceed-action drop<br>policy-map QSP-" + int004service + "-" + pmap5 + "-HFP-IN-MAP<br>Description marks bgp qos-group to 6 other traffic into default queue, polices to cir speed<br>Class QC-BGP-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class QC-BGPv6-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class class-default<br>police cir " + speed5 + "000000 bc 343750<br>conform-action set-dscp-transmit default<br>exceed-action drop<br>!<br>";
+   
+   if (document.me3400toasr920gen.int000servicePRI.checked) int000bandwidth = "bandwidth 100000";
+   else int000bandwidth = "bandwidth " + document.me3400toasr920gen.int000speed.value + "000";
+   if (document.me3400toasr920gen.int001servicePRI.checked) int001bandwidth = "bandwidth 100000";
+   else int001bandwidth = "bandwidth " + document.me3400toasr920gen.int001speed.value + "000";
+   if (document.me3400toasr920gen.int002servicePRI.checked) int002bandwidth = "bandwidth 100000";
+   else int002bandwidth = "bandwidth " + document.me3400toasr920gen.int002speed.value + "000";
+   if (document.me3400toasr920gen.int003servicePRI.checked) int003bandwidth = "bandwidth 100000";
+   else int003bandwidth = "bandwidth " + document.me3400toasr920gen.int003speed.value + "000";
+   if (document.me3400toasr920gen.int004servicePRI.checked) int004bandwidth = "bandwidth 100000";
+   else int004bandwidth = "bandwidth " + document.me3400toasr920gen.int004speed.value + "000";
+
+   if (document.me3400toasr920gen.int000vlan.value == "" ) int000conf = "!";
+   else if (document.me3400toasr920gen.int000vlan.value != "" ) int000conf = "interface Gi0/0/0<br>description -," + document.me3400toasr920gen.int000evc.value + ",-," + l3pri1 + "," + document.me3400toasr920gen.input25.value + "_" + document.me3400toasr920gen.input26.value + "." + document.me3400toasr920gen.int000vlan.value + "," + document.me3400toasr920gen.int000speed.value + "<br>mtu 9216<br>no ip address<br>" + int000bandwidth + "<br>load-interval 30<br>" + mediatype1 + "<br>" + pri1 + "<br>no shut<br>service-policy output QSP-ANY-CFP-OUT-MAP<br>service instance " + document.me3400toasr920gen.int000vlan.value + " ethernet " + document.me3400toasr920gen.int000evc.value + "<br>" + encapsulation1 + "<br>bridge-domain " + document.me3400toasr920gen.int000vlan.value + "<br>exit<br>exit<br>!"
+   if (document.me3400toasr920gen.int001vlan.value == "" ) int001conf = "!";
+   else if (document.me3400toasr920gen.int001vlan.value != "" ) int001conf = "interface Gi0/0/1<br>description -," + document.me3400toasr920gen.int001evc.value + ",-," + l3pri2 + ","  + document.me3400toasr920gen.input25.value +  "_" + document.me3400toasr920gen.input26.value + "." + document.me3400toasr920gen.int001vlan.value + "," + document.me3400toasr920gen.int001speed.value + "<br>mtu 9216<br>no ip address<br>" + int001bandwidth + "<br>load-interval 30<br>" + mediatype2 + "<br>" + pri2 + "<br>no shut<br>service-policy output QSP-ANY-CFP-OUT-MAP<br>service instance " + document.me3400toasr920gen.int001vlan.value + " ethernet " + document.me3400toasr920gen.int001evc.value + "<br>" + encapsulation2 + "<br>bridge-domain " + document.me3400toasr920gen.int001vlan.value + "<br>exit<br>exit<br>!"
+   if (document.me3400toasr920gen.int002vlan.value == "" ) int002conf = "!";
+   else if (document.me3400toasr920gen.int002vlan.value != "" ) int002conf = "interface Te0/0/2<br>description -," + document.me3400toasr920gen.int002evc.value + ",-," + l3pri3 + "," + document.me3400toasr920gen.input25.value + "_" + document.me3400toasr920gen.input26.value + "." + document.me3400toasr920gen.int002vlan.value + "," + document.me3400toasr920gen.int002speed.value + "<br>mtu 9216<br>no ip address<br>" + int002bandwidth + "<br>load-interval 30<br>no shut<br>service-policy output QSP-ANY-CFP-OUT-MAP<br>service instance " + document.me3400toasr920gen.int002vlan.value + " ethernet " + document.me3400toasr920gen.int002evc.value + "<br>" + encapsulation3 + "<br>bridge-domain " + document.me3400toasr920gen.int002vlan.value + "<br>exit<br>exit<br>!"  
+   if (document.me3400toasr920gen.int003vlan.value == "" ) int003conf = "!";
+   else if (document.me3400toasr920gen.int003vlan.value != "" ) int003conf = "interface Te0/0/3<br>description -," + document.me3400toasr920gen.int003evc.value + ",-," + l3pri4 + "," + document.me3400toasr920gen.input25.value + "_" + document.me3400toasr920gen.input26.value + "." + document.me3400toasr920gen.int003vlan.value + "," + document.me3400toasr920gen.int002speed.value + "<br>mtu 9216<br>no ip address<br>" + int003bandwidth + "<br>load-interval 30<br>no shut<br>service-policy output QSP-ANY-CFP-OUT-MAP<br>service instance " + document.me3400toasr920gen.int003vlan.value + " ethernet " + document.me3400toasr920gen.int003evc.value + "<br>" + encapsulation4 + "<br>bridge-domain " + document.me3400toasr920gen.int003vlan.value + "<br>exit<br>exit<br>!"
+   if (document.me3400toasr920gen.int004vlan.value == "" ) int004conf = "!";
+   else if (document.me3400toasr920gen.int004vlan.value != "" ) int004conf = "interface Te0/0/4<br>description -," + document.me3400toasr920gen.int004evc.value + ",-," + l3pri5 + "," + document.me3400toasr920gen.input25.value + "_" + document.me3400toasr920gen.input26.value + "." + document.me3400toasr920gen.int004vlan.value + "," + document.me3400toasr920gen.int004speed.value + "<br>mtu 9216<br>no ip address<br>" + int004bandwidth + "<br>load-interval 30<br>no shut<br>service-policy output QSP-ANY-CFP-OUT-MAP<br>service instance " + document.me3400toasr920gen.int004vlan.value + " ethernet " + document.me3400toasr920gen.int004evc.value + "<br>" + encapsulation5 + "<br>bridge-domain " + document.me3400toasr920gen.int004vlan.value + "<br>exit<br>exit<br>!";
+   
+   if (document.me3400toasr920gen.int000evc.value == "" ) trunksvi0 = "!";
+   else if (document.me3400toasr920gen.int000evc.value != "" ) trunksvi0 = "service instance " + document.me3400toasr920gen.int000vlan.value + " ethernet " + document.me3400toasr920gen.int000evc.value + "<br>encapsulation dot1q " + document.me3400toasr920gen.int000vlan.value + "<br>rewrite ingress tag pop 1 symmetric<br>" + trunksvi0speed + "<br>bridge-domain " + document.me3400toasr920gen.int000vlan.value + "<br>!";
+   
+   if (document.me3400toasr920gen.int001evc.value == "" ) trunksvi1 = "!";
+   else if (document.me3400toasr920gen.int001evc.value != "" ) trunksvi1 = "service instance " + document.me3400toasr920gen.int001vlan.value + " ethernet " + document.me3400toasr920gen.int001evc.value + "<br>encapsulation dot1q " + document.me3400toasr920gen.int001vlan.value + "<br>rewrite ingress tag pop 1 symmetric<br>" + trunksvi1speed + "<br>bridge-domain " + document.me3400toasr920gen.int001vlan.value + "<br>!";
+   
+   if (document.me3400toasr920gen.int002evc.value == "" ) trunksvi2 = "!";
+   else if (document.me3400toasr920gen.int002evc.value != "" ) trunksvi2 = "service instance " + document.me3400toasr920gen.int002vlan.value + " ethernet " + document.me3400toasr920gen.int002evc.value + "<br>encapsulation dot1q " + document.me3400toasr920gen.int002vlan.value + "<br>rewrite ingress tag pop 1 symmetric<br>" + trunksvi2speed + "<br>bridge-domain " + document.me3400toasr920gen.int002vlan.value + "<br>!";
+   
+   if (document.me3400toasr920gen.int003evc.value == "" ) trunksvi3 = "!";
+   else if (document.me3400toasr920gen.int003evc.value != "" ) trunksvi3 = "service instance " + document.me3400toasr920gen.int003vlan.value + " ethernet " + document.me3400toasr920gen.int003evc.value + "<br>encapsulation dot1q " + document.me3400toasr920gen.int003vlan.value + "<br>rewrite ingress tag pop 1 symmetric<br>" + trunksvi3speed + "<br>bridge-domain " + document.me3400toasr920gen.int003vlan.value + "<br>!";
+   
+   if (document.me3400toasr920gen.int004evc.value == "" ) trunksvi4 = "!";
+   else if (document.me3400toasr920gen.int004evc.value != "" ) trunksvi4 = "service instance " + document.me3400toasr920gen.int004vlan.value + " ethernet " + document.me3400toasr920gen.int004evc.value + "<br>encapsulation dot1q " + document.me3400toasr920gen.int004vlan.value + "<br>rewrite ingress tag pop 1 symmetric<br>" + trunksvi4speed + "<br>bridge-domain " + document.me3400toasr920gen.int004vlan.value + "<br>!";
+   date = (today)
+   
+
+ commands = "FIX THIS!!!!";
+	document.getElementById("commOut").innerHTML = (commands);
+    }
+
+ <!-- SAR-F to SAR-M Script -->
+ 
+
+$("textarea").keyup(splitLine);
+
+
+function splitLine(){
+
+    $("#commOut").empty();
+	var oldhfp = new RegExp(document.sarftosarmgen.oldsarhfp.value, "g");
+	var oldcfp = new RegExp(document.sarftosarmgen.oldsarcfp.value, "g");
+	var oldtemp = "tmnxHwTemperature.1.134217729";
+	var newtemp = "tmnxHwTemperature.1.150994977";
+	var oldalarmthresh = "rising-threshold 55 falling-event 1 falling-threshold 10";
+	var newalarmthresh = "rising-threshold 67 falling-event 1 falling-threshold 0";
+	var newcard = 'card 1<br>' 
+        + 'card-type iom-sar<br>' 
+        + 'mda 1<br>' 
+        + 'mda-type i7-1gb<br>' 
+        + 'exit<br>' 
+		+ 'exit<br>' 
+		+ '#--------------------------------------------------<br>' 
+		+ 'echo ';
+	var newports = 'port 1/2/1<br>';
+	var saving = 'test-oam<br>'
+        + '        twamp<br>'
+        + '            server<br>'
+        + '                shutdown<br>'
+        + '            exit<br>'
+        + '        exit<br>'
+		+ '    exit<br>'
+		+ 'exit all<br>'
+		+ '<br>'
+		+ 'configure system snmp no shutdown<br>'
+		+ 'admin save cf3:\\' + document.sarftosarmgen.devicename.value + '.cfg<br>'
+		+ 'bof primary-config cf3:\\' + document.sarftosarmgen.devicename.value + '.cfg<br>'
+		+ 'bof persist on<br>bof save<br>';
+	var newscheduler = '    scheduler-mode 16-priority<br>'
+		+ '                exit<br>'
+		+ '            exit<br>'
+		+ '            spoke-sdp';
+		var lines = $("textarea").val().replace(oldhfp,(document.sarftosarmgen.newsarhfp.value)).replace(oldcfp,(document.sarftosarmgen.newsarcfp.value)).replace(oldtemp,newtemp).replace(oldalarmthresh,newalarmthresh).replace(/fabric-profile[\s\S]*?exit/g,"").replace(/card 1[\s\S]*?echo/g,newcard).replace(/port 1\/1\/1[\s\S]*?port 1\/2\/6/g,newports).replace(/port 1\/2\/1[\s\S]*?port/g,'port').replace(/test-oam[\s\S]*?exit all/g,saving).replace(/exit[\t\r\n ]*exit[\t\r\n ]*spoke-sdp/g,newscheduler).split(/\n/g);
+	for(var i=0;i<lines.length;i++){
+        var ele = $("<div class=\"clear\"></div>");
+		ele.html("" + lines[i] + "");
+		$("#commOut").append(ele);
+    }
+}
+
+<!-- Sonus CLI -->
+
+$("textarea").keyup(splitLine2);
+
+function splitLine2(){
+    $("#commOut2").empty();
+    var lines = $("textarea").val().split(/\n/g);
+    for(var i=0;i<lines.length;i++){
+        var ele= $("<div class=\"clear\"></div>");
+        ele.html("delete subscriber Subscriber_Id " + lines[i] + " Country_Id 1<br>delete destination national_id " + lines[i] + " Country_Id 1<br>create subscriber Subscriber_Id " + lines[i] + " Country_Id 1 Local_Carrier_Id LOCAL Is_Destination 1<br>update Destination National_Id " + lines[i] + " Country_Id 1 Element_Attributes 0x24 Routing_Label_Id BROADWORKS_NS Home_Gateway TNCOMO_NS1");
+        $("#commOut2").append(ele);
+    }
+}
+
+
+
+<!-- End Sonus cli -->	
+	
+	
+<!-- Navigation -->
+   $('#me3400toasr920base,#sarftosarmbase,#copybutton,#asr920guidelines,#sarftosarmguidelines,#sonusclibase,#copybutton2,#text,#sonuscliguidelines').hide();
+   
+   <!-- ASR 920 -->
+   $("a[href$='#me3400toasr920base']").click(function (e) {
+    e.preventDefault();
+    $('#me3400toasr920base,#asr920guidelines,#copybutton').show();
+    $('#sarftosarmbase,#sarftosarmguidelines,#guidelines,#sonusclibase,#copybutton2,#text,#sonuscliguidelines').hide();
+	$( "#commOut" ).empty();
+   });
+   
+      <!-- SARF to SARM -->
+   $("a[href$='#sarftosarmbase']").click(function (e) {
+    e.preventDefault();
+    $('#sarftosarmbase,#sarftosarmguidelines,#text,#copybutton').show();
+    $('#me3400toasr920base,#asr920guidelines,#guidelines,#sonusclibase,#copybutton2,#sonuscliguidelines').hide();
+	$( "#commOut" ).empty();
+   });
+   
+      <!-- Sonus CLI -->
+   $("a[href$='#sonusclibase']").click(function (e) {
+    e.preventDefault();
+    $('#sonusclibase,#text,#copybutton2,#sonuscliguidelines').show();
+    $('#sarftosarmbase,#sarftosarmguidelines,#me3400toasr920base,#asr920guidelines,#guidelines,#copybutton').hide();
+	$( "#commOut" ).empty();
+   });   
+   
+</script>
+
+</div>
+</div>
+
+</body>
+</html>

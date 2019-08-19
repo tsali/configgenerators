@@ -1,0 +1,1596 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head -->
+    <title>Config Generator</title>
+
+	<!-- © James Washington 1970-2400 -->
+	<!-- 
+	Todo: UPDATE 1921 to LINK TO DOCUMENTS ABOUT 1458/1459 AND OTHER DETAILS
+		  ADD RFC CONFIG STUFF?
+		  
+	Version 0.2.0 - DATE
+		ACTION
+		  
+	Version 0.1.9 - 09/27/2018
+		Added noshut to snmp functions in Alcatel base config
+	
+	Version 0.1.8 - 02/01/2018
+		Updated logo image to 2018 standards. Unhid the 1921 UTI fix, added the 1921 MTU Path fix for CASA CTS.
+		  
+	Version 0.1.7 - 11/23/2017
+		Added in bandwidth commands to all speed generators - this affects routing protocols and some initial packets.
+		Can definitely affect EIGRP, IGRP and OSPF. TCP will adjust it's initial retransmission based on the bandwidth.
+	
+	Version 0.1.6 - 10/20/2017
+		Found a discrepancy in the 920 temp speed upgrade, fixed it
+	
+	Version 0.1.5 - 09/29/2017
+		Added a hidden 1921 feature, it's not vetted for general use yet, but I needed to get it in here for accessibility.
+	
+	Version 0.1.4 - 08/01/2017
+		Made the "click here" link a little more obvious and bigger, updated the link on Chalk to point directly to here.
+	
+	Version 0.1.3 - 07/18/2017
+		Added a magic copy to clipboard button that copies the config output to your clipboard, automagically.
+		
+	Version 0.1.2 - 07/05/2017
+		Added enable password to base config for all devices, standardized passwords.
+		  
+	Version 0.1.1 - 04/20/2017
+		Added 1921 Re-Ip due to MTU bug script to make the processing of this much quicker.
+		Cleaned up the generator to make it prettier, because James like it being pretty.
+	
+	Version 0.1.0 - 04/18/2017
+		Fixed a typo in the 920 policy-map name builder.
+		Added ALU speed upgrades for 7750 & 7210 with their "unique" issues on bits vs. bytes.
+		Changed how some information is retrieved and displayed.
+		Explained how to obtain the existing policy names a little more coherently.
+	
+	Version 0.0.7 - 04/12/2017
+		Minor changes to more accurately depict naming conventions of speeds above 1 gig to show XGBE instead of XXXXM.
+		
+	Version 0.0.6 - 04/01/2017
+		Added East/West password selector for Adtran RnS.
+		Added TenGig/Gig port selector for the speed upgrade on ASR 920's to rate limit properly.
+			
+	Version 0.0.5 - 03/29/2017
+		Added speed upgrade for ASR920 & WAN/OBI toggle buttons for the speed upgrades.
+		
+	Version 0.0.4 - 03/28/2017
+		Added speed upgrade for ME3400.
+		
+	Version 0.0.3 - 03/28/2017
+		Added FXS Port config to Adtran tab.
+
+	Version 0.0.2 - 03/13/2017
+		Corrected trunk naming convention for ALU.
+		Corrected naming convention for requested fields for the ASR 920.
+		Added trunk field with the "Default" defaults to all devices.
+		Added the Adtran Rack N Stacks.
+				
+	Version 0.0.1b - 03/09/2017
+		Typo correction, clarified some details and added a feedback option.
+			
+	Version 0.0.1a - Initial Creation - 03/08/2017 (Boomtime, Chaos 67, 3183 YOLD)
+		James Washington made this based on an old port forward generator Ryan Breen made in 2012.
+		James Washington then made that generator super advanced and added multiple features and devices during 2012-2015.
+		Michele Giralico then beefed up with better looks and added more coax devices in 2016.
+		James Washington then retrofitted it to work for base configs for Service Provider gear in 2017.
+	-->
+	
+	
+    <!-- Bootstrap CSS-->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+    <!--[if lt IE 9]>
+     <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+     <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+	
+    <style>
+      h2 {
+        font-weight: bold;
+      }
+
+      .panel {
+        background-color: #eee;
+        box-shadow: none;
+	  }
+      .style1 {
+        color: rgb(7,30,68);
+        text-align: center;
+      }
+	  
+      .nav-tabs > li.active > a,
+      .nav-tabs > li.active > a:focus,
+      .nav-tabs > li.active > a:hover{
+        background-color: #eee !important;
+      }
+    </style>
+	
+<!-- NEW STUFF FOR MAGIC COPY BUTTON -->
+	  
+	  	  <script>
+	      
+function selectElementContents(el) 
+{
+    // Copy textarea, pre, div, etc.
+	if (document.body.createTextRange) {
+        // IE 
+        var textRange = document.body.createTextRange();
+        textRange.moveToElementText(el);
+        textRange.select();
+        textRange.execCommand("Copy");     
+    }
+	else if (window.getSelection && document.createRange) {
+        // non-IE
+        var range = document.createRange();
+        range.selectNodeContents(el);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range); 
+        try {  
+		    var successful = document.execCommand('copy');  
+		    var msg = successful ? 'successful' : 'unsuccessful';  
+		    console.log('Copy command was ' + msg);  
+		} catch(err) {  
+		    console.log('Oops, unable to copy');  
+		} 
+    }
+} // end function selectElementContents(el) 
+
+function make_copy_button(el)
+{
+	var copy_btn = document.createElement('input');
+	copy_btn.type = "button";
+	el.parentNode.insertBefore(copy_btn, el.nextSibling);
+	copy_btn.onclick = function() { selectElementContents(el); };
+	
+	if (document.queryCommandSupported("copy") || parseInt(navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./)[2]) >= 42)
+	{
+		// Copy works with IE 4+, Chrome 42+, Firefox 41+, Opera 29+
+		copy_btn.value = "Copy to Clipboard";
+	}	
+	else
+	{
+		// Select only for Safari and older Chrome, Firefox and Opera
+		copy_btn.value = "Select All (then press CTRL+C to Copy)";
+	}
+}
+/* Note: document.queryCommandSupported("copy") should return "true" on browsers that support copy
+	but there was a bug in Chrome versions 42 to 47 that makes it return "false".  So in those
+	versions of Chrome feature detection does not work!
+	See https://code.google.com/p/chromium/issues/detail?id=476508
+*/
+
+make_copy_button(document.getElementById("markup"));
+
+</script>
+
+<!-- END MAGIC COPY BUTTON -->
+
+  </head>
+ 
+  <body>
+    <div class="container">
+      <div class="header clearfix">
+		<center><img src="YOUR COMPANY LOGO" width="400"></center>
+        <p><h2 class="style1">Config Generator</h2><center>v.1.9 - 09/27/2018</center></p>
+        
+      </div>
+	 <!-- When adding or removing a switch, create a li under navTabs for the device and also add/update the switch's tabpanel div with a nested div for each config type. -->
+     <!-- Nav tabs -->
+     <div id="navTabs">
+       <ul id="switch" class="nav nav-tabs" role="tablist">
+         <li id="asr920drop" role="presentation" class="active dropdown">
+          <a href="#" id="asr920tab" class="dropdown-toggle" data-toggle="dropdown" aria-controls="asr920-contents" aria-expanded="false">
+		  ASR 920 <span class="caret"></span>
+		  </a>
+		    <ul class="dropdown-menu" aria-labelledby="asr920" id="asr920-contents">
+		        <li class> 
+			     <a href="#asr920base" role="tab" id="asr920m-tab" data-toggle="tab" aria-controls="asr920m" aria-expanded="false"> Base config</a>
+			    </li>
+			    <li class>
+				 <a href="#920speedbase" role="tab" id="920speedm-tab" data-toggle="tab" aria-controls="920speedm" aria-expanded="false"> Speed Upgrade</a>
+				</li>
+		    </ul>
+         </li>
+		 
+         <li id="me3400drop" role="presentation" class="dropdown">
+          <a href="#" id="me3400tab" class="dropdown-toggle" data-toggle="dropdown" aria-controls="me3400-contents" aria-expanded="false">
+		  ME 3400 <span class="caret"></span>
+		  </a>
+		    <ul class="dropdown-menu" aria-labelledby="me3400" id="me3400-contents">
+		       <li class> 
+			     <a href="#me3400base" role="tab" id="me3400m-tab" data-toggle="tab" aria-controls="me3400wm" aria-expanded="false"> Base Config</a>
+			   </li>
+			   <li class>
+				 <a href="#3400speedbase" role="tab" id="3400speedm-tab" data-toggle="tab" aria-controls="3400speedm" aria-expanded="false"> Speed Upgrade</a>
+			   </li>
+		    </ul>
+         </li>
+		 
+         <li id="aludrop" role="presentation" class="dropdown">
+          <a href="#" id="alutab" class="dropdown-toggle" data-toggle="dropdown" aria-controls="alu-contents" aria-expanded="false">
+		  Alcatel <span class="caret"></span>
+		  </a>
+		    <ul class="dropdown-menu" aria-labelledby="alu" id="alu-contents">
+		       <li class> 
+			     <a href="#alubase" role="tab" id="alum-tab" data-toggle="tab" aria-controls="alum" aria-expanded="false"> Base Config</a>
+			   </li>
+			   <li class>
+				 <a href="#alu7210speedbase" role="tab" id="alu7210speedm-tab" data-toggle="tab" aria-controls="alu7210speedm" aria-expanded="false"> 7210 Speed Upgrade</a>
+			   </li>
+			   <li class>
+				 <a href="#alu7750speedbase" role="tab" id="alu7750speedm-tab" data-toggle="tab" aria-controls="alu7750speedm" aria-expanded="false"> 7750 Speed Upgrade</a>
+			   </li>
+		    </ul>
+         </li>
+		 
+		 <li id="adtrandrop" role="presentation" class="dropdown">
+          <a href="#" id="adtrantab" class="dropdown-toggle" data-toggle="dropdown" aria-controls="adtran-contents" aria-expanded="false">
+		  Adtran <span class="caret"></span>
+		  </a>
+		    <ul class="dropdown-menu" aria-labelledby="adtran" id="adtran-contents">
+		       <li class> 
+			     <a href="#adtran904base" role="tab" id="adtran904m-tab" data-toggle="tab" aria-controls="adtran904m" aria-expanded="false">Adtran904/908 RnS</a>
+			   </li>
+			   <li class> 
+			     <a href="#adtran644base" role="tab" id="adtran644m-tab" data-toggle="tab" aria-controls="adtran644m" aria-expanded="false">Adtran644 RnS</a>
+			   </li>
+			   <li class>
+				 <a href="#adtranfxsbase" role="tab" id="adtranfxsm-tab" data-toggle="tab" aria-controls="adtranfxsm" aria-expanded="false">Add FXS Line</a>
+			   </li>
+			</ul>
+         </li>
+
+		 
+		<li id="cisco1921drop" role="presentation" class="dropdown">
+          <a href="#" id="cisco1921tab" class="dropdown-toggle" data-toggle="dropdown" aria-controls="cisco1921-contents" aria-expanded="false">
+		  Cisco 1921 <span class="caret"></span>
+		  </a>
+		    <ul class="dropdown-menu" aria-labelledby="cisco1921" id="cisco1921-contents">
+		       <li class> 
+			     <a href="#reip1921base" role="tab" id="reip1921m-tab" data-toggle="tab" aria-controls="reip1921m" aria-expanded="false">Re-Ip</a>
+			   </li>
+			   <li class>
+			     <a href="#mtu1921base" role="tab" id="mtu1921m-tab" data-toggle="tab" aria-controls="mtu1921m" aria-expanded="false">L2TPv3 to UTI Fix</a>
+			   </li>
+			   <li class>
+				 <a href="#pmtu1921base" role="tab" id="pmtu1921m-tab" data-toggle="tab" aria-controls="pmtu1921m" aria-expanded="false">L2TPv3 to PMTU Fix</a>
+				</li>
+			</ul>
+        </li>		 
+	</div>
+
+		 
+		 
+		 
+		 
+     <div class="jumbotron">
+	  
+	  <!-- Basic Guidelines -->
+	  <div id="guidelines">
+		<h4>Helpful Hints:</h4>
+		<ul><h5>
+			<li>Click the dropdown for the device you with to configure and select the appropriate option</li>
+		</h5></ul>
+	  </div>
+<hr color="rgb(7,30,68)">
+
+<!-- ASR policy finder -->
+<div id="speedupgrade">
+<center>
+<h2>If this doesn't work directly in COIN, <a href="INTERNAL SERVER" target="_blank">click here</a></center></h2>
+</div>
+
+<!-- ASR policy finder -->
+<div id="asrpolicy">
+<center>
+<h3>ASR 920 Speed upgrade</h3>
+<h4>Run the following commands to find the existing policy-map names under the service instance:<br>
+<font color="rgb(7,30,68)">show run int <b>(Customer Facing Port)</b><br>
+show run int <b>(Headend Facing Port)</b></font><br>
+</center>
+</h4>
+</div>
+
+<!-- 3400 policy finder -->
+<div id="3400policy">
+<center>
+<h3>3400 Speed upgrade</h3>
+<h4>Run the following commands to find the existing policy-map, class and submap names:<br>
+<font color="rgb(7,30,68)">show run int <b>(CFP)</b><br>
+show policy-map QPP-ALL-HFP-IN-TOPMAP</font><br>
+</center>
+</h4>
+</div>
+
+<!-- ALU policy finder -->
+<div id="alupolicy">
+<center>
+<h3>ALU 7210/7750 Speed upgrade</h3>
+<h4>Run the following commands to find the existing QOS names under the customers SAP and CFP:<br>
+<font color="rgb(7,30,68)">configure port <b>(CFP)</b><br>
+info<br>
+configure service epipe <b>(CUSTOMERS EPIPE)</b><br>
+info</font><br>
+</center>
+</h4>
+</div>
+
+<!-- OBI_WAN SELECTOR -->	   
+<DIV id="OBI_WAN">
+<center>
+<H4>Please select if this is an OBI or WAN circuit</H4>
+<DIV class="btn-group" data-toggle="buttons">
+<LABEL class="btn btn-primary">
+<INPUT name="OBI_WAN" id="OBI" type="radio" checked="" value="OBI" >OBI</LABEL>
+<LABEL class="btn btn-primary">
+<INPUT name="OBI_WAN" id="WAN" type="radio" value="WAN">WAN</LABEL>
+</DIV>
+</DIV>
+</center>
+
+<!-- Ten Gig or Gig port selector -->	   
+<DIV id="gig_port">
+<center>
+<H4>Please select if this is a Gig or TenGig port:</H4>
+<DIV class="btn-group" data-toggle="buttons">
+<LABEL class="btn btn-primary">
+<INPUT name="gig_port" id="gig" type="radio" checked="">Gig</LABEL>
+<LABEL class="btn btn-primary">
+<INPUT name="gig_port" id="tengig" type="radio">TenGig</LABEL>
+</DIV>
+</DIV>
+</center>
+
+<!-- East/West SELECTOR -->	   
+<DIV id="EAST_WEST">
+<center>
+<h3>Adtran Rack N Stack</h3>
+<h4>
+If this doesn't load for you in IE, try on Chrome or click this <a href="INTERNAL SERVER" target="_blank">link</a>
+<br>
+</h4>
+</font>
+<H4>Please select East or West</H4>
+<DIV class="btn-group" data-toggle="buttons">
+<LABEL class="btn btn-primary">
+<INPUT name="EAST_WEST" id="EAST" type="radio" checked="" value="EAST PASSWORD">East</LABEL>
+<LABEL class="btn btn-primary">
+<INPUT name="EAST_WEST" id="WEST" type="radio" value="WEST PASSWORD">West</LABEL>
+</DIV>
+</DIV>
+</center>
+
+
+
+
+      <div id="configselect" class="panel-body">
+       
+	   <!-- Tab panes -->
+	   
+        <!-- ASR 920 Tab -->
+        <div role="tabpanel" class="tab-pane active" id="asr920">
+           <!-- ASR 920W MULTIPLE  -->
+		  <div id="asr920base">
+          <h3>ASR 920 Base Config</h3> 
+          <form name=asr920gen>
+
+			 <div class="row">
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-2">	
+                  <label for="TrunkPort">Trunk:</label>
+                  <input name=input5 class="form-control" value="Te0/0/5">
+                </div>
+				<div class="form-group col-md-2">	
+                  <label for="FirstPort">Mngmt IP:</label>
+                  <input name=input1 class="form-control" >
+                </div>
+				<div class="form-group col-md-2">
+                  <label for="FirstIP">Mngmt Subnet:</label>
+                  <input name=input2 class="form-control" >
+                </div>
+                <div class="col-md-2"></div>
+             </div>
+
+             <div class="row">
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-2">	
+                  <label for="SecondPort">Mngmt VLAN:</label>
+                  <input name=input3 class="form-control" >
+                </div>
+                <div class="form-group col-md-2">
+                  <label for="SecondIP">Default-Gateway:</label>
+                  <input name=input4 class="form-control" >
+                </div>
+				                <div class="col-md-2"></div>
+                <div class="form-group col-md-4"></div>
+                <div class="form-group col-md-4">
+                   <!-- "Generate" Button -->
+                   <div class="generateCode">
+                     <button class="btn btn-primary btn-sm" type="button" onclick=asr920config() value="Multiple Rules">
+                     <span class="glyphicon glyphicon-console" aria-hidden="true"></span> Generate Code
+                     </button>
+                   </div>
+                </div>
+                <div class="col-md-2"></div>
+             </div>
+
+             
+
+             <div class="row">
+
+             </div>
+          </form>
+		  </div>
+
+		  		 <div role="tabpanel" class="tab-pane" id="920speed">
+          <!-- ASR920speed config  -->
+		  <div id="920speedbase">
+
+	          <form name=asr920speedgen>
+
+			 <div class="row">
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+					<label for="3400cfp">Customer Handoff:</label>
+					<input name=asr920speedinput1 class="form-control" value="Gi0/0/0">
+				</div>
+                <div class="col-md-2"></div>
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+                    <label for="920hfp">Trunk:</label>
+                    <input name=asr920speedinput2 class="form-control" value="Te0/0/5">
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-2"></div>
+                <div class="form-group col-md-4">	
+                     <label for="920cfpinput">Details after Service Instance on CFP:</label>
+                     <input name=asr920speedinput3 class="form-control" value="xxxx ethernet chcxxxxxxxx">
+                </div>
+			    <div class="col-md-2"></div>
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+                    <label for="920class">Service-Policy input name on CFP:</label>
+                    <input name=asr920speedinput4 class="form-control">
+                </div>
+			    <div class="col-md-2"></div>
+             </div>
+			 <div class="row">
+				<div class="col-md-2"></div>
+                <div class="form-group col-md-4">	
+                     <label for="920submap">Service-Policy input name on HFP:</label>
+                     <input name=asr920speedinput5 class="form-control">
+                </div>
+			    <div class="col-md-2"></div>
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+                    <label for="920newspeed">New Speed in Megabits (100/500/1000 etc..)</label>
+                    <input name=asr920speedinput6 class="form-control">
+                </div>
+			    <div class="col-md-2"></div>
+             </div>
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4"></div>
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4">
+                  <!-- "Generate" Button -->
+                     <div class="generateCode">
+                       <button class="btn btn-primary btn-sm" type="button" onclick=asr920speedconfig() value="Multiple Ports">
+                       <span class="glyphicon glyphicon-console" aria-hidden="true"></span> Generate Code
+                       </button>
+                     </div>	
+				</div>
+             </div>					
+          </form>
+		  </div>
+		  
+		  
+
+        </div> 
+
+        <!-- ME 3400 Tab -->
+        <div role="tabpanel" class="tab-pane" id="me3400">
+          <!-- ME 3400 Base Config -->
+		  <div id="me3400base">
+          <h3>ME3400 Base Config</h3>
+          <form name=me3400gen>
+
+			 <div class="row">
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-2">	
+                  <label for="TrunkPort">Trunk:</label>
+                  <input name=me3400input5 class="form-control" value="Gi0/4">
+                </div>
+				<div class="form-group col-md-2">	
+                  <label for="FirstPort">Mngmt IP:</label>
+                  <input name=me3400input1 class="form-control">
+               </div>
+               <div class="form-group col-md-2">
+                  <label for="FirstIP">Mngmt Subnet:</label>
+                  <input name=me3400input2 class="form-control">
+               </div>
+                <div class="col-md-2"></div>
+             </div>
+			 
+             <div class="row">
+               <div class="col-md-2"></div>
+               <div class="form-group col-md-2">	
+                  <label for="SecondPort">Mngmt VLAN:</label>
+                  <input name=me3400input3 class="form-control">
+               </div>
+               <div class="form-group col-md-2">
+                  <label for="SecondIP">Default-Gateway:</label>
+                  <input name=me3400input4 class="form-control">
+               </div>
+			    <div class="col-md-2"></div>
+                <div class="form-group col-md-4"></div>
+                <div class="form-group col-md-4">
+                  <!-- "Generate" Button -->
+                  <div class="generateCode">
+                     <button class="btn btn-primary btn-sm" type="button" onclick=me3400config() value="Multiple Rules">
+                     <span class="glyphicon glyphicon-console" aria-hidden="true"></span> Generate Code
+                     </button>
+                  </div>
+                </div>
+               <div class="col-md-2"></div>
+             </div>
+
+             <div class="row">
+
+             </div>	
+          </form>
+		  </div>
+		  
+		 <div role="tabpanel" class="tab-pane" id="3400speed">
+          <!-- 3400speed config  -->
+		  <div id="3400speedbase">
+
+		  <form name=me3400speedgen>
+		    
+			 <div class="row">
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+					<label for="3400cfp">Customer Handoff:</label>
+					<input name=me3400speedinput1 class="form-control" value="Gi0/1">
+				</div>
+                <div class="col-md-2"></div>
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+                    <label for="3400hfp">Trunk:</label>
+                    <input name=me3400speedinput2 class="form-control" value="Gi0/4">
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-2"></div>
+                <div class="form-group col-md-4">	
+                     <label for="3400cfpinput">Input Policy name on CFP:</label>
+                     <input name=me3400speedinput3 class="form-control">
+                </div>
+			    <div class="col-md-2"></div>
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+                    <label for="3400class">Class name under TOPMAP:</label>
+                    <input name=me3400speedinput4 class="form-control">
+                </div>
+			    <div class="col-md-2"></div>
+             </div>
+			 <div class="row">
+				<div class="col-md-2"></div>
+                <div class="form-group col-md-4">	
+                     <label for="3400submap">In-Submap name under Class name:</label>
+                     <input name=me3400speedinput5 class="form-control">
+                </div>
+			    <div class="col-md-2"></div>
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+                    <label for="3400newspeed">New Speed in Megabits (100/500/1000 etc..)</label>
+                    <input name=me3400speedinput6 class="form-control">
+                </div>
+			    <div class="col-md-2"></div>
+             </div>
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4"></div>
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4">
+                  <!-- "Generate" Button -->
+                     <div class="generateCode">
+                       <button class="btn btn-primary btn-sm" type="button" onclick=me3400speedconfig() value="Multiple Ports">
+                       <span class="glyphicon glyphicon-console" aria-hidden="true"></span> Generate Code
+                       </button>
+                     </div>	
+				</div>
+             </div>					
+          </form>
+		  </div>
+		  
+		</div> 	
+
+        <!-- Alcatel Tab -->
+        <div role="tabpanel" class="tab-pane" id="alu">
+          <!-- Alcatel Base config  -->
+		  <div id="alubase">
+          <h3>Alcatel Base Config</h3>
+	          <form name=alugen>
+	 
+			 <div class="row">
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4">	
+                  <label for="TrunkPort">Trunk:</label>
+                  <input name=aluinput5 class="form-control" value="1/1/6">
+                </div>
+                <div class="col-md-2"></div>
+             </div>
+		 
+			 <div class="row">
+				<div class="col-md-2"></div>
+                <div class="form-group col-md-4">	
+                     <label for="FirstPort">Router System IP (must be in CIDR):</label>
+                     <input name=aluinput1 class="form-control">
+                </div>
+                <div class="form-group col-md-4">
+                     <label for="FirstIP">Static Route IP:</label>
+                     <input name=aluinput2 class="form-control">
+                </div>
+                <div class="col-md-2"></div>
+             </div>
+					
+             <div class="row">
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4">	
+                     <label for="SecondPort">Management IP (must be in CIDR):</label>
+                     <input name=aluinput3 class="form-control">
+                </div>
+                <div class="form-group col-md-4">
+                     <label for="SecondIP">Management SAP(VLAN):</label>
+                     <input name=aluinput4 class="form-control">
+                </div>
+                <div class="col-md-2"></div>
+             </div>
+             <div class="row">
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4"></div>
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4">
+                  <!-- "Generate" Button -->
+                     <div class="generateCode">
+                       <button class="btn btn-primary btn-sm" type="button" onclick=aluconfig() value="Multiple Ports">
+                       <span class="glyphicon glyphicon-console" aria-hidden="true"></span> Generate Code
+                       </button>
+                     </div>	
+				</div>
+             </div>					
+          </form>
+		  </div>
+        
+		
+
+
+		 <div role="tabpanel" class="tab-pane" id="alu7210speed">
+          <!-- alu 7210 speed config  -->
+		  <div id="alu7210speedbase">
+
+		  <form name=alu7210speedgen>
+		    
+			 <div class="row">
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+					<label for="alu7210cfp">Customer Handoff:</label>
+					<input name=alu7210speedinput1 class="form-control" value="1/1/1">
+				</div>
+                <div class="col-md-2"></div>
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+                    <label for="alu7210epipe">Epipe:</label>
+                    <input name=alu7210speedinput2 class="form-control">
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-2"></div>
+                <div class="form-group col-md-4">	
+                     <label for="alu7210currentqos">Current QOS name:</label>
+                     <input name=alu7210speedinput3 class="form-control">
+                </div>
+			    <div class="col-md-2"></div>
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+                    <label for="alu7210sap">Sap:</label>
+                    <input name=alu7210speedinput5 class="form-control">
+                </div>
+				</div>
+				
+			<div class="row">
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+                    <label for="alu7210newspeed">New Speed in Megabits (100/500/1000 etc..):</label>
+                    <input name=alu7210speedinput4 class="form-control">
+                </div>
+
+             
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4"></div>
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4">
+                  <!-- "Generate" Button -->
+                     <div class="generateCode">
+                       <button class="btn btn-primary btn-sm" type="button" onclick=alu7210speedconfig() value="Multiple Ports">
+                       <span class="glyphicon glyphicon-console" aria-hidden="true"></span> Generate Code
+                       </button>
+                     </div>	
+				</div>
+             				
+          </form>
+		  </div>
+		  		 
+		  
+		</div> 			
+
+		 <div role="tabpanel" class="tab-pane" id="alu7750speed">
+          <!-- alu 7750 speed config  -->
+		  <div id="alu7750speedbase">
+
+		  <form name=alu7750speedgen>
+		    
+			 <div class="row">
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+					<label for="alu7750cfp">Customer Handoff:</label>
+					<input name=alu7750speedinput1 class="form-control" value="1/1/1">
+				</div>
+                <div class="col-md-2"></div>
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+                    <label for="alu7750epipe">Epipe:</label>
+                    <input name=alu7750speedinput2 class="form-control">
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-2"></div>
+                <div class="form-group col-md-4">	
+                     <label for="alu7750currentqos">Current QOS name:</label>
+                     <input name=alu7750speedinput3 class="form-control">
+                </div>
+			    <div class="col-md-2"></div>
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+                    <label for="alu7750sap">Sap:</label>
+                    <input name=alu7750speedinput5 class="form-control">
+                </div>
+				</div>
+				
+			<div class="row">
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+                    <label for="alu7750newspeed">New Speed in Megabits (100/500/1000 etc..):</label>
+                    <input name=alu7750speedinput4 class="form-control">
+                </div>
+			
+
+
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4"></div>
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4">
+                  <!-- "Generate" Button -->
+                     <div class="generateCode">
+                       <button class="btn btn-primary btn-sm" type="button" onclick=alu7750speedconfig() value="Multiple Ports">
+                       <span class="glyphicon glyphicon-console" aria-hidden="true"></span> Generate Code
+                       </button>
+                     </div>	
+				</div>
+             </div>					
+          </form>
+		  </div>
+		</div>
+	</div>	
+	</div>
+	          <!-- adtran Tab -->
+        
+		<div role="tabpanel" class="tab-pane" id="adtran904">
+          <!-- adtran904 Base config  -->
+		   <div id="adtran904base">
+          <h3>Adtran904/908 RnS</h3>
+	          <form name=adtran904gen>
+			 
+			 <div class="row">
+				<div class="col-md-2"></div>
+                <div class="form-group col-md-4">	
+                     <label for="FirstPort">Customer Name/Host Name:</label>
+                     <input name=adtran904input1 class="form-control" value="pri01-">
+                </div>
+                <div class="col-md-2"></div>
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+                     <label for="adtran904ip">Adtran IP:</label>
+                     <input name=adtran904input2 class="form-control">
+                </div>
+                <div class="col-md-2"></div>
+             </div>
+          
+
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4"></div>
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4">
+                  <!-- "Generate" Button -->
+                     <div class="generateCode">
+                       <button class="btn btn-primary btn-sm" type="button" onclick=adtran904config() value="Multiple Ports">
+                       <span class="glyphicon glyphicon-console" aria-hidden="true"></span> Generate Code
+                       </button>
+                     </div>	
+				</div>
+             </div>					
+          </form>
+		  
+        
+	          <!-- adtran644 Tab -->
+        
+		<div role="tabpanel" class="tab-pane" id="adtran644">
+          <!-- adtran644 rns config  -->
+		  <div id="adtran644base">
+          <h3>Adtran644 RnS</h3>
+	          <form name=adtran644gen>
+			 
+			 <div class="row">
+				<div class="col-md-2"></div>
+                <div class="form-group col-md-4">	
+                     <label for="adtran644hostname">Customer Name/Hostname:</label>
+                     <input name=adtran644input1 class="form-control" value="pri01-">
+                </div>
+                <div class="col-md-2"></div>
+            	<div class="col-md-2"></div>
+                <div class="form-group col-md-4">	
+                     <label for="adtran644ip">Adtran IP:</label>
+                     <input name=adtran644input2 class="form-control">
+                </div>
+                <div class="col-md-2"></div>
+             </div>
+
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4"></div>
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4">
+                  <!-- "Generate" Button -->
+                     <div class="generateCode">
+                       <button class="btn btn-primary btn-sm" type="button" onclick=adtran644config() value="Multiple Ports">
+                       <span class="glyphicon glyphicon-console" aria-hidden="true"></span> Generate Code
+                       </button>
+                     </div>	
+				</div>
+             </div>					
+          </form>
+		  </div>
+        
+		<div role="tabpanel" class="tab-pane" id="adtranfxs">
+          <!-- adtranfxs config  -->
+		  <div id="adtranfxsbase">
+          <h3>FXS</h3>
+			<form name=adtranfxsgen>
+			 
+			 <div class="row">
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+					<label for="adtranfxsinterface">Interface (fxs 0/X):</label>
+					<input name=adtranfxsinput1 class="form-control" value="fxs 0/1">
+				</div>
+                <div class="col-md-2"></div>
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+                    <label for="adtranfxsuser">Phone Number going to FXS:</label>
+                    <input name=adtranfxsinput2 class="form-control">
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-2"></div>
+                <div class="form-group col-md-4">	
+                     <label for="adtranfxsregister">Register Number(BTN):</label>
+                     <input name=adtranfxsinput3 class="form-control">
+                </div>
+			    <div class="col-md-2"></div>
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+                    <label for="adtranfxspassword">Password:</label>
+                    <input name=adtranfxsinput4 class="form-control" value="Chtr_">
+                </div>
+			    <div class="col-md-2"></div>
+             </div>
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4"></div>
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4">
+                  <!-- "Generate" Button -->
+                     <div class="generateCode">
+                       <button class="btn btn-primary btn-sm" type="button" onclick=adtranfxsconfig() value="Multiple Ports">
+                       <span class="glyphicon glyphicon-console" aria-hidden="true"></span> Generate Code
+                       </button>
+                     </div>	
+				</div>
+             	</div>				
+          </form>
+		  </div>
+
+	</div>	  
+		  
+		  
+
+
+		<div role="tabpanel" class="tab-pane" id="reip1921">
+          <!-- reip921 config  -->
+		  <div id="reip1921base">
+          <h3>1921 Re-Ip</h3>
+			<form name=reip1921gen>
+			 
+			 <div class="row">
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+					<label for="reip1921oldip">Old IP:</label>
+					<input name=reip1921input1 class="form-control">
+				</div>
+                <div class="col-md-2"></div>
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+                    <label for="reip1921newip">New IP:</label>
+                    <input name=reip1921input2 class="form-control">
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-2"></div>
+                <div class="form-group col-md-4">	
+                     <label for="reip1921vcidr">VCID/PW ID:</label>
+                     <input name=reip1921input3 class="form-control">
+                </div>
+			    <div class="col-md-2"></div>
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+                    <label for="reip1921rtrint">RTR interface (Gi0/X.xxxx):</label>
+                    <input name=reip1921input4 class="form-control" value="Gi0/X.xxxx">
+                </div>
+			    <div class="col-md-2"></div>
+             </div>
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4"></div>
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4">
+                  <!-- "Generate" Button -->
+                     <div class="generateCode">
+                       <button class="btn btn-primary btn-sm" type="button" onclick=reip1921config() value="Multiple Ports">
+                       <span class="glyphicon glyphicon-console" aria-hidden="true"></span> Generate Code
+                       </button>
+                     </div>	
+				</div>
+				</form>
+             </div>	
+			 
+
+          
+		  </div>
+
+		<div role="tabpanel" class="tab-pane" id="mtu1921">
+          <!-- MTU1921 config  -->
+		  <div id="mtu1921base">
+          <h3>1921 MTU</h3>
+			<form name=mtu1921gen>
+			 <center><font size="+2" color="red"><b>!!!!! SEE A NETWORK ENGINEER PRIOR TO IMPLEMENTING THIS !!!!!</center></font></b>
+			 <div class="row">
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+					<label for="mtu1921ip">1921 IP:</label>
+					<input name=mtu1921input1 class="form-control">
+				</div>
+                <div class="col-md-2"></div>
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+                    <label for="mtu1921rtrip">RTR IP:</label>
+                    <input name=mtu1921input2 class="form-control">
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-2"></div>
+                <div class="form-group col-md-4">	
+                     <label for="mtu1921vcidr">VCID/PW ID:</label>
+                     <input name=mtu1921input3 class="form-control">
+                </div>
+			    <div class="col-md-2"></div>
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+                    <label for="mtu1921rtrint">RTR interface (Gi0/X.xxxx):</label>
+                    <input name=mtu1921input4 class="form-control" value="Gi0/X.xxxx">
+                </div>
+			    <div class="col-md-2"></div>
+             </div>
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4"></div>
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4">
+                  <!-- "Generate" Button -->
+                     <div class="generateCode">
+                       <button class="btn btn-primary btn-sm" type="button" onclick=mtu1921config() value="Multiple Ports">
+                       <span class="glyphicon glyphicon-console" aria-hidden="true"></span> Generate Code
+                       </button>
+                     </div>	
+				</div>
+				</form>
+             </div>	
+			 
+
+          
+		  </div>
+
+<!-- New Stuff -->		  
+
+		<div role="tabpanel" class="tab-pane" id="pmtu1921">
+          <!-- PMTU1921 config  -->
+		  <div id="pmtu1921base">
+          <h3>1921 PMTU</h3>
+			<form name=pmtu1921gen>
+			 <center><font size="+2" color="red"><b>!!!!! SEE A NETWORK ENGINEER PRIOR TO IMPLEMENTING THIS !!!!!</center></font></b>
+			 <div class="row">
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+					<label for="pmtu1921ip">1921 IP:</label>
+					<input name=pmtu1921input1 class="form-control">
+				</div>
+                <div class="col-md-2"></div>
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+                    <label for="pmtu1921rtrip">RTR IP:</label>
+                    <input name=pmtu1921input2 class="form-control">
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-2"></div>
+                <div class="form-group col-md-4">	
+                     <label for="pmtu1921vcidr">VCID/PW ID:</label>
+                     <input name=pmtu1921input3 class="form-control">
+                </div>
+			    <div class="col-md-2"></div>
+				<div class="col-md-2"></div>
+				<div class="form-group col-md-4">	
+                    <label for="pmtu1921rtrint">RTR interface (Gi0/X.xxxx):</label>
+                    <input name=pmtu1921input4 class="form-control" value="Gi0/X.xxxx">
+                </div>
+			    <div class="col-md-2"></div>
+             </div>
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4"></div>
+                <div class="col-md-2"></div>
+                <div class="form-group col-md-4">
+                  <!-- "Generate" Button -->
+                     <div class="generateCode">
+                       <button class="btn btn-primary btn-sm" type="button" onclick=pmtu1921config() value="Multiple Ports">
+                       <span class="glyphicon glyphicon-console" aria-hidden="true"></span> Generate Code
+                       </button>
+                     </div>	
+				</div>
+				</form>
+             </div>	
+			 
+
+          
+		  </div>
+
+<!-- END NEW STUFF -->
+		  
+		  
+</div>
+	  	  
+	 
+	  
+	  <!-- Commands Output -->
+	  <div>
+	  <div id="copybutton">
+	      <div class="row">
+		    <div class="col-md-0"></div>
+			<input type="button" onclick="selectElementContents(document.getElementById('test'))" unselectable="on" value="Copy to Clipboard">
+            <pre id="test"><div id="commOut" class="col-md-8"></div></pre>
+            <div class="col-md-2"></div>
+		  </div>
+	  </div>
+	  </div>
+      
+	</div>
+	  
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+	
+    <!-- Bootstrap Javascript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous">
+	</script>
+	
+	<!-- Custom Javascript -->
+    <!-- When adding or removing a switch, add/update switch script, Navigation script, and switch specific scripts under navigation. -->
+ <script>
+ 
+ <!-- ASR 920 Script -->
+
+ function asr920config() {
+
+ commands = "config t<br>interface " + document.asr920gen.input5.value + "<br>mtu 9216<br>no ip address<br>no negotiation auto<br>cdp enable<br>service instance 1 ethernet<br>encapsulation untagged<br>l2protocol peer cdp<br>bridge-domain 1<br>service instance "+ document.asr920gen.input3.value +" ethernet<br>encapsulation dot1q "+ document.asr920gen.input3.value +"<br>rewrite ingress tag pop 1 symmetric<br>bridge-domain "+ document.asr920gen.input3.value +"<br>exit<br>no shutdown<br>exit<br>interface BDI"+ document.asr920gen.input3.value +"<br>ip address "+ document.asr920gen.input1.value +" "+ document.asr920gen.input2.value +"<br>encapsulation dot1Q "+ document.asr920gen.input3.value +"<br>no shutdown<br>exit<br>exit<br>ip ssh time-out 60<br>ip ssh source-interface BDI"+ document.asr920gen.input3.value +"<br>ip ssh version 2<br>ip route 0.0.0.0 0.0.0.0 "+ document.asr920gen.input4.value +"<br>exit<br>exit<br>line con 0<br>exec-timeout 30 0<br>password PASSWORD<br>login authentication console<br>stopbits 1<br>line aux 0<br>stopbits 1<br>line vty 0 4<br>exec-timeout 30 0<br>password PASSWORD<br>enable secret PASSWORD<br>logging synchronous<br>transport input telnet ssh<br>transport output telnet ssh<br>end<br>write memory<br><br>";
+	document.getElementById("commOut").innerHTML = (commands);
+    }
+	
+<!-- ASR920 Speed upgrade Script -->
+
+   function asr920speedconfig() {
+   
+   if (OBI.checked) OBI_WAN = OBI.value;
+   if (WAN.checked) OBI_WAN = WAN.value;
+   if (gig.checked && document.asr920speedgen.asr920speedinput6.value > 909 ) speed = "1000";
+   else if (tengig.checked && document.asr920speedgen.asr920speedinput6.value > 9090 ) speed = "10000";
+   else speed = Math.round(document.asr920speedgen.asr920speedinput6.value*1.1); 
+   if (gig.checked && document.asr920speedgen.asr920speedinput6.value > 1000 ) pmap = "1GBE";
+   else if (tengig.checked && document.asr920speedgen.asr920speedinput6.value > 1000 ) pmap = (document.asr920speedgen.asr920speedinput6.value/1000) + "GBE";
+   else pmap = (document.asr920speedgen.asr920speedinput6.value) + "M";
+   var bandwidth = document.asr920speedgen.asr920speedinput4.value.replace(/[^0-9]/g,''); // replace all non-numerals with nothing
+   
+         
+commands = "conf t<br>int " + document.asr920speedgen.asr920speedinput1.value + "<br>bandwidth " + document.asr920speedgen.asr920speedinput6.value + "000<br>service instance " + document.asr920speedgen.asr920speedinput3.value + "<br>no service-policy input " + document.asr920speedgen.asr920speedinput4.value + "<br>int " + document.asr920speedgen.asr920speedinput2.value + "<br>service instance " + document.asr920speedgen.asr920speedinput3.value + "<br>no service-policy input " + document.asr920speedgen.asr920speedinput5.value + "<br>policy-map QSP-" + OBI_WAN +"" + pmap + "-CFP-IN-MAP<br>Description marks bgp cos and qos-group to 6; other traffic cos, qos-group, and dscp to 0; polices to cir speed<br>Class QC-BGP-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class QC-BGPv6-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class class-default<br>police cir " + speed + "000000 bc 343750<br>conform-action set-cos-transmit 0<br>conform-action set-qos-transmit 0<br>conform-action set-dscp-transmit default<br>exceed-action drop<br>policy-map QCP-" + OBI_WAN + "-" + pmap + "-HFP-IN-SUBMAP<br>Description marks bgp qos-group to 6 other traffic into default queue, polices to cir speed<br>Class QC-BGP-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class QC-BGPv6-TRFC<br>police cir 1000000 bc 31250<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>Class class-default<br>police cir " + speed + "000000 bc 343750<br>conform-action set-dscp-transmit default<br>exceed-action drop<br>int " + document.asr920speedgen.asr920speedinput1.value + "<CFP Variable><br>service instance " + document.asr920speedgen.asr920speedinput3.value + "<br>service-policy input QSP-" + OBI_WAN + "" + pmap + "-CFP-IN-MAP<br>int " + document.asr920speedgen.asr920speedinput2.value + "<br>service instance " + document.asr920speedgen.asr920speedinput3.value + "<br>service-policy input QCP-" + OBI_WAN + "-" + pmap + "-HFP-IN-SUBMAP<br>end<br>write<br><br>===========<br>=To Revert=<br>===========<br>conf t<br>int " + document.asr920speedgen.asr920speedinput1.value + "<br>bandwidth " + bandwidth + "000<br>service instance " + document.asr920speedgen.asr920speedinput3.value + "<br>no service-policy input QSP-" + OBI_WAN +"" + pmap + "-CFP-IN-MAP<br>service-policy input " + document.asr920speedgen.asr920speedinput4.value + "<br>int " + document.asr920speedgen.asr920speedinput2.value + "<br>service instance " + document.asr920speedgen.asr920speedinput3.value + "<br>no service-policy input QCP-" + OBI_WAN + "-" + pmap + "-HFP-IN-SUBMAP<br>service-policy input " + document.asr920speedgen.asr920speedinput5.value + "<br>end<br>write<br><br>";
+	document.getElementById("commOut").innerHTML = (commands);
+    }
+	
+	
+<!-- Me3400 Script -->
+
+   function me3400config() {
+
+commands = "conf t<br>ip default-gateway " + document.me3400gen.me3400input4.value + "<br>vlan " + document.me3400gen.me3400input3.value + "<br>interface Vlan" + document.me3400gen.me3400input3.value + "<br>description CBN_Administration<br>ip address " + document.me3400gen.me3400input1.value + " " + document.me3400gen.me3400input2.value + "<br>no shut<br>exit<br>enable password PASSWORD<br>interface " + document.me3400gen.me3400input5.value + "<br>port-type nni<br>switchport mode trunk<br>switchport trunk allowed vlan " + document.me3400gen.me3400input3.value + "<br>speed nonegotiate<br>no shut<br>exit<br>line vty 0 4<br>password PASSWORD<br>login<br>end<br>write memory<br><br>";
+	document.getElementById("commOut").innerHTML = (commands);
+    }
+	
+<!-- Me3400 Speed upgrade Script -->
+
+   function me3400speedconfig() {
+   if (OBI.checked) OBI_WAN = OBI.value;
+   if (WAN.checked) OBI_WAN = WAN.value;
+   if (document.me3400speedgen.me3400speedinput6.value > 909 ) speed = "1000";
+   else speed = Math.round(document.me3400speedgen.me3400speedinput6.value*1.1);
+   if (document.me3400speedgen.me3400speedinput6.value == 1000 ) pmap = "1GBE";
+   else pmap = (document.me3400speedgen.me3400speedinput6.value) + "M";
+   var bandwidth = document.me3400speedgen.me3400speedinput3.value.replace(/[^0-9]/g,''); // replace all non-numerals with nothing
+   
+commands = "conf t<br>int " + document.me3400speedgen.me3400speedinput1.value + "<br>bandwidth " + document.me3400speedgen.me3400speedinput6.value + "000<br>no service-policy input " + document.me3400speedgen.me3400speedinput3.value + "<br>int " + document.me3400speedgen.me3400speedinput2.value + "<br>no service-policy input QPP-ALL-HFP-IN-TOPMAP<br>policy-map QSP-" + OBI_WAN + "" + pmap + "-CFP-IN-MAP<br>description marks bgp cos and qos-group to 6; other traffic cos, qos-group, and dscp to 0; polices to cir speed<br>class QC-BGP-TRFC<br>police cir 1000000<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br> class class-default<br>police cir " + speed + "000000<br>conform-action set-cos-transmit 0<br>conform-action set-qos-transmit 0<br>conform-action set-dscp-transmit default<br>exceed-action drop<br>policy-map QCP-" + OBI_WAN + "" + pmap + "-HFP-IN-SUBMAP<br>description marks bgp qos-group to 6 other traffic into default queue, polices to cir speed<br>class QC-BGP-TRFC<br>police cir 1000000<br>conform-action set-cos-transmit 6<br>conform-action set-qos-transmit 6<br>exceed-action drop<br>class class-default<br>police cir " + speed + "000000<br>conform-action transmit<br>exceed-action drop<br>policy-map QPP-ALL-HFP-IN-TOPMAP<br>class " + document.me3400speedgen.me3400speedinput4.value + "<br>no service-policy " + document.me3400speedgen.me3400speedinput5.value + "<br>service-policy QCP-" + OBI_WAN + "" + pmap + "-HFP-IN-SUBMAP<br>int " + document.me3400speedgen.me3400speedinput1.value + "<br>service-policy input QSP-" + OBI_WAN + "" + pmap + "-CFP-IN-MAP<br>int " + document.me3400speedgen.me3400speedinput2.value + "<br>  service-policy input QPP-ALL-HFP-IN-TOPMAP<br>end<br>write<br><br>===========<br>=To Revert=<br>===========<br>conf t<br>int " + document.me3400speedgen.me3400speedinput1.value + "<br>bandwidth " + bandwidth + "000<br>no service-policy input QSP-" + OBI_WAN + "" + pmap + "-CFP-IN-MAP<br>service-policy input " + document.me3400speedgen.me3400speedinput3.value + "<br>int " + document.me3400speedgen.me3400speedinput2.value + "<br>no service-policy input QPP-ALL-HFP-IN-TOPMAP<br>policy-map QPP-ALL-HFP-IN-TOPMAP<br>class " + document.me3400speedgen.me3400speedinput4.value + "<br>no service-policy QCP-" + OBI_WAN + "" + pmap + "-HFP-IN-SUBMAP<br>service-policy " + document.me3400speedgen.me3400speedinput5.value + "<br>int " + document.me3400speedgen.me3400speedinput2.value + "<br>service-policy input QPP-ALL-HFP-IN-TOPMAP<br>end<br>write<br><br>";
+	document.getElementById("commOut").innerHTML = (commands);
+    }
+ 	
+	
+<!-- ALU Script -->
+
+   function aluconfig() {
+   
+    commands = 
+"configure<br>system<br>snmp<br>no shut<br>exit<br>exit<br>port " + document.alugen.aluinput5.value + "<br>description &#34l2trnk&#34<br>ethernet<br>mode access uplink<br>access<br>uplink<br>qos 10<br>exit<br>exit<br>mtu 9212<br>no autonegotiate<br>exit<br>no shutdown<br>exit<br>router<br>interface &#34system&#34<br>address " + document.alugen.aluinput1.value + "<br>exit<br>static-route 0.0.0.0/0 next-hop " + document.alugen.aluinput2.value + "<br>exit<br>service<br>customer 1 create<br>description &#34Default customer&#34<br>exit<br>ies 1 customer 1 create<br>interface &#34Management&#34 create<br>description &#34CB_Switch_Management&#34<br>address " + document.alugen.aluinput3.value + "<br>sap " + document.alugen.aluinput5.value + ":" + document.alugen.aluinput4.value + ".* create<br>exit<br>exit<br>no shutdown<br>exit all<br>admin save cf1:\\config.cfg<br>bof primary-config cf1:\\config.cfg<br>bof persist on<br>bof save<br><br>";
+	document.getElementById("commOut").innerHTML = (commands);
+    }
+	
+<!-- NEW STUFF -- 7210 is done in kb, 7750 (1024=1meg) is done in KB (128=1meg)-->
+
+<!-- ALU7210 Speed Script -->
+
+   function alu7210speedconfig() {
+   if (OBI.checked) OBI_WAN = OBI.value;
+   if (WAN.checked) OBI_WAN = WAN.value;
+   var str = (document.alu7210speedgen.alu7210speedinput4.value);
+   str = str.slice(0, -3);
+   if (document.alu7210speedgen.alu7210speedinput4.value > 9090 ) speed = "10000";
+   else speed = Math.round(document.alu7210speedgen.alu7210speedinput4.value*1.1);
+   if (document.alu7210speedgen.alu7210speedinput4.value >= 1000 ) pmap = (str) + "G";
+   else pmap = (document.alu7210speedgen.alu7210speedinput4.value) + "Mb";
+   if (document.alu7210speedgen.alu7210speedinput4.value >= 0 && document.alu7210speedgen.alu7210speedinput4.value <= 99 ) burst = "1024";
+   else if (document.alu7210speedgen.alu7210speedinput4.value >= 100 && document.alu7210speedgen.alu7210speedinput4.value <= 249 ) burst = "2048";
+   else if (document.alu7210speedgen.alu7210speedinput4.value >= 250 && document.alu7210speedgen.alu7210speedinput4.value <= 499 ) burst = "4096";
+   else if (document.alu7210speedgen.alu7210speedinput4.value >= 500 ) burst = "8096";
+
+
+   
+    commands = 	
+	"configure<br>qos<br>sap-ingress 10" + document.alu7210speedgen.alu7210speedinput4.value + " create<br>description &quot;" + pmap + " " + OBI_WAN + " service&#34<br>num-qos-classifiers 8<br>meter 1 create<br>mode trtcm2<br>adaptation-rule cir max pir max<br>rate cir 0 pir " + speed + "000<br>mbs " + burst + "<br>cbs " + burst + "<Br>exit<br>exit<br>access-egress 10" + document.alu7210speedgen.alu7210speedinput4.value + " create<br>description &quot;" + pmap + " " + OBI_WAN + " Service&#34<br>queue 1<br>adaptation-rule cir max pir max<br>rate cir 0 pir " + speed + "000<br>exit<br>exit<br>exit<br>port " + document.alu7210speedgen.alu7210speedinput1.value + "<br>ethernet<br>access<br>egress<br>qos 10" + document.alu7210speedgen.alu7210speedinput4.value + "<br>exit<br>exit<br>exit<br>exit<br>service<br>epipe " + document.alu7210speedgen.alu7210speedinput2.value + " sap " + document.alu7210speedgen.alu7210speedinput1.value +":" + document.alu7210speedgen.alu7210speedinput5.value + "<br>ingress<br>qos 10" + document.alu7210speedgen.alu7210speedinput4.value + "<br>exit all<br>admin save<br>bof save<br><br>===========<br>=To Revert=<br>===========<br><br>configure<br> port " + document.alu7210speedgen.alu7210speedinput1.value + "<br>ethernet<br>access<br>egress<br>qos " + document.alu7210speedgen.alu7210speedinput3.value +"<br>exit<br>exit<br>exit<br>exit<br>service<br>epipe " + document.alu7210speedgen.alu7210speedinput2.value + " sap " + document.alu7210speedgen.alu7210speedinput1.value +":" + document.alu7210speedgen.alu7210speedinput5.value + "<br>ingress<br>qos " + document.alu7210speedgen.alu7210speedinput3.value+ "<br>exit all<br>admin save<br>bof save<br><br>";	
+	document.getElementById("commOut").innerHTML = (commands);
+    }
+	
+<!-- ALU7750 Speed Script -->
+
+   function alu7750speedconfig() {
+   if (OBI.checked) OBI_WAN = OBI.value;
+   if (WAN.checked) OBI_WAN = WAN.value;
+   var str = (document.alu7750speedgen.alu7750speedinput4.value);
+   str = str.slice(0, -3);
+   if (document.alu7750speedgen.alu7750speedinput4.value > 9090 ) speed = "10000";
+   else speed = Math.round(document.alu7750speedgen.alu7750speedinput4.value*1.1);
+   if (document.alu7750speedgen.alu7750speedinput4.value >= 1000 ) pmap = (str) + "G";
+   else pmap = (document.alu7750speedgen.alu7750speedinput4.value) + "Mb";
+   if (document.alu7750speedgen.alu7750speedinput4.value >= 0 && document.alu7750speedgen.alu7750speedinput4.value <= 99 ) burst = "128";
+   else if (document.alu7750speedgen.alu7750speedinput4.value >= 100 && document.alu7750speedgen.alu7750speedinput4.value <= 249 ) burst = "256";
+   else if (document.alu7750speedgen.alu7750speedinput4.value >= 250 && document.alu7750speedgen.alu7750speedinput4.value <= 499 ) burst = "512";
+   else if (document.alu7750speedgen.alu7750speedinput4.value >= 500 ) burst = "1024";
+
+   
+    commands = 	
+	"configure<br>qos<br>sap-ingress 10" + document.alu7750speedgen.alu7750speedinput4.value + " create<br>description &quot;" + pmap + " " + OBI_WAN + " service&#34<br>num-qos-classifiers 8<br>meter 1 create<br>mode trtcm2<br>adaptation-rule cir max pir max<br>rate cir 0 pir " + speed + "000<br>mbs " + burst + "<br>cbs " + burst + "<br>exit<br>exit<br>access-egress 10" + document.alu7750speedgen.alu7750speedinput4.value + " create<br>description &quot;" + pmap + " " + OBI_WAN + " Service&#34<br>remarking<br>queue 1<br>adaptation-rule cir max pir max<br>rate cir 0 pir " + speed + "000<br>exit<br>exit<br>exit<br>port " + document.alu7750speedgen.alu7750speedinput1.value + "<br>ethernet<br>access<br>egress<br>qos 10" + document.alu7750speedgen.alu7750speedinput4.value + "<br>exit<br>exit<br>exit<br>exit<br>service<br>epipe " + document.alu7750speedgen.alu7750speedinput2.value + " sap " + document.alu7750speedgen.alu7750speedinput1.value +":" + document.alu7750speedgen.alu7750speedinput5.value + "<br>ingress<br>qos 10" + document.alu7750speedgen.alu7750speedinput4.value + "<br>exit all<br>admin save<br>bof save<br><br>===========<br>=To Revert=<br>===========<br><br>configure<br> port " + document.alu7750speedgen.alu7750speedinput1.value + "<br>ethernet<br>access<br>egress<br>qos " + document.alu7750speedgen.alu7750speedinput3.value +"<br>exit<br>exit<br>exit<br>exit<br>service<br>epipe " + document.alu7750speedgen.alu7750speedinput2.value + " sap " + document.alu7750speedgen.alu7750speedinput1.value +":" + document.alu7750speedgen.alu7750speedinput5.value + "<br>ingress<br>qos " + document.alu7750speedgen.alu7750speedinput3.value + "<br>exit all<br>admin save<br>bof save<br><br>";	
+	document.getElementById("commOut").innerHTML = (commands);
+    }
+
+<!-- END NEW STUFF -->	
+	
+<!-- Adtran 904/908 Script -->
+
+	function adtran904config() {
+	if (EAST.checked) EAST_WEST = EAST.value;
+	if (WEST.checked) EAST_WEST = WEST.value;
+	
+	commands = "conf t<br>Interface eth 0/1<br>speed 100<br>full-duplex<br>exit<br>username admin password " + EAST_WEST + "<br>enable password " + EAST_WEST + "<br>line telnet 0 4<br>login local-userlist<br>no shutdown<br>no password<br>line ssh 0 4<br>login local-userlist<br>no shutdown<br>line con 0<br>password " + EAST_WEST + "<br>exit<br>ip http server<br>ip http secure-server<br>hostname " + document.adtran904gen.adtran904input1.value + "<br>end<br>write memory<br><br>------------------------------<br>If this is an install, perform the following and record the results to the install ticket<br>sh interface ethernet 0/1 | include duplex<br>sh int ethernet 0/1 | include add<br>sh ver | inc Serial<br>sh ip route | b Gateway<br>I verify connectivity to the Adtran and that the R&S has been completed.<br>------------------------------<br>Record the following to the CIT Equipment tab<br>Http://" +document.adtran904gen.adtran904input2.value +"<br>Telnet://" +document.adtran904gen.adtran904input2.value +"<br>Serial #<br><br>";
+	document.getElementById("commOut").innerHTML = (commands);
+    }
+	
+<!-- Adtran 644Script -->
+
+	function adtran644config() {
+	if (EAST.checked) EAST_WEST = EAST.value;
+	if (WEST.checked) EAST_WEST = WEST.value;	
+	
+	commands = "conf t<br>int gigabit-ethernet 0/1<br>speed 100<br>full-duplex<br>exit<br>username admin password " + EAST_WEST + "<br>enable password " + EAST_WEST + "<br>line telnet 0 4<br>login local-userlist<br>no shutdown<br>no password<br>line ssh 0 4<br>login local-userlist<br>no shutdown<br>line con 0<br>login<br>password " + EAST_WEST + "<br>exit<br>ip http server<br>ip http secure-server<br>hostname " +document.adtran644gen.adtran644input1.value +"<br>end<br>write memory<br><br>------------------------------<br>If this is an install, perform the following and record the results to the install ticket<br>sh interface gigabit-ethernet 0/1 | include duplex<br>sh int gigabit-ethernet 0/1 | include add<br>sh ver | inc Serial<br>sh ip route | b Gateway<br>I verify connectivity to the Adtran and that the R&S has been completed.<br>------------------------------<br>Record the following to the CIT Equipment tab<br>Http://" +document.adtran644gen.adtran644input2.value +"<br>Telnet://" +document.adtran644gen.adtran644input2.value +"<br>Serial #<br><br>";
+	document.getElementById("commOut").innerHTML = (commands);
+	}
+	
+<!-- Adtran FXSScript -->
+
+	function adtranfxsconfig() {
+	
+	commands = "conf t<br>interface " + document.adtranfxsgen.adtranfxsinput1.value + "<br>no shut<br>voice user " + document.adtranfxsgen.adtranfxsinput2.value + "<br>connect " + document.adtranfxsgen.adtranfxsinput1.value + "<br>description &#34;"+ document.adtranfxsgen.adtranfxsinput2.value +"&#34<br>password &#34;1234&#34<br>no special-ring-cadences<br>sip-identity " + document.adtranfxsgen.adtranfxsinput2.value + " t01 register auth-name &#34;"+ document.adtranfxsgen.adtranfxsinput3.value +"&#34 password &#34;"+ document.adtranfxsgen.adtranfxsinput4.value +"&#34<br>modem-passthrough<br>no echo-cancellation<br>end<br>write<br><br>Verify it's registered using show sip trunk-registration<br><br>If the new FXS isn't registering, double check the password and/or escalate to Tier II<br><br>";
+	document.getElementById("commOut").innerHTML = (commands);
+	}
+
+<!-- 1921 Re-IP script -->
+
+	function reip1921config() {
+	var s = (document.reip1921gen.reip1921input1.value);
+	s = s.substring(0, s.indexOf('.'));
+	var n = (document.reip1921gen.reip1921input2.value);
+	n = n.substring(0, n.indexOf('.'));
+	
+	commands = "1921 Config:<br><br>conf t<br>interface loopback51<br>no ip address<br>ip address " + document.reip1921gen.reip1921input2.value + " 255.255.255.255<br>router rip<br>no network " + s + ".0.0.0<br>network " + n + ".0.0.0<br>no ip prefix-list RIP-ADV-OUT seq 5 permit " + document.reip1921gen.reip1921input1.value + "/32<br>ip prefix-list RIP-ADV-OUT seq 5 permit " + document.reip1921gen.reip1921input2.value + "/32<br>end<br>write<br><br>RTR Config:<br><br>conf t<br>interface " + document.reip1921gen.reip1921input4.value + "<br>no xconnect " + document.reip1921gen.reip1921input1.value + " " + document.reip1921gen.reip1921input3.value + " pw-class L2TPv3<br>xconnect " + document.reip1921gen.reip1921input2.value + " " + document.reip1921gen.reip1921input3.value + " pw-class L2TPv3<br>end<br>write<br><br>Ticket notes:<br>I allocated the following IP address:<br>" + document.reip1921gen.reip1921input2.value + "/32<br><br>";
+	
+		document.getElementById("commOut").innerHTML = (commands);
+	}
+	
+	
+<!-- 1921 MTU script -->
+
+	function mtu1921config() {
+	
+	commands = "1921 Config:<br><br>conf t<br>pseudowire-class L2TPv3UTI<br>encapsulation l2tpv3<br>protocol l2tpv3 L2-CPE<br>ip protocol UTI<br>ip local interface Loopback51<br>interface GigabitEthernet0/1.10<br>no xconnect " + document.mtu1921gen.mtu1921input2.value + " " + document.mtu1921gen.mtu1921input3.value + " pw-class L2TPv3<br>xconnect " + document.mtu1921gen.mtu1921input2.value + " " + document.mtu1921gen.mtu1921input3.value + " pw-class L2TPv3UTI<br>end<br>write	<br><br>RTR Config:<br><br>conf t<br>pseudowire-class L2TPv3UTI<br>encapsulation l2tpv3<br>protocol l2tpv3 L2-CPE<br>ip protocol UTI<br>ip local interface Loopback51<br>interface " + document.mtu1921gen.mtu1921input4.value + "<br>no xconnect " + document.mtu1921gen.mtu1921input1.value + " " + document.mtu1921gen.mtu1921input3.value + " pw-class L2TPv3<br>xconnect " + document.mtu1921gen.mtu1921input1.value + " " + document.mtu1921gen.mtu1921input3.value + " pw-class L2TPv3UTI<br>end<br>write<br>";
+	
+		document.getElementById("commOut").innerHTML = (commands);
+	}
+
+<!-- 1921 PMTU script -->
+
+	function pmtu1921config() {
+	
+	commands = "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@<br>@ WARNING - MUST BE ON FW 15.1(3)T1 @<br>@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@<br><br>FW Up/Downgrade:<br><br>conf t<br>ip tftp blocksize 8192<br>end<br>copy tftp://24.178.162.3/nsg/c1900-universalk9_npe-mz.SPA.153-1.T.bin flash:c1900-universalk9_npe-mz.SPA.153-1.T.bin<br>conf t<br>boot system flash c1900-universalk9_npe-mz.SPA.153-1.T.bin<br>exit<br>write mem<br>reload<br><br>1921 Config:<br><br>conf t<br>pseudowire-class L2TPv3UTI1458<br>encapsulation l2tpv3<br>protocol l2tpv3 L2-CPE<br>ip protocol UTI<br>ip local interface Loopback51<br>ip pmtu max 1458<br>interface GigabitEthernet0/1.10<br>no xconnect " + document.pmtu1921gen.pmtu1921input2.value + " " + document.pmtu1921gen.pmtu1921input3.value + " pw-class L2TPv3<br>xconnect " + document.pmtu1921gen.pmtu1921input2.value + " " + document.pmtu1921gen.pmtu1921input3.value + " pw-class L2TPv3UTI1458<br>end<br>write	<br><br>RTR Config:<br><br>conf t<br>pseudowire-class L2TPv3UTI1458<br>encapsulation l2tpv3<br>protocol l2tpv3 L2-CPE<br>ip protocol UTI<br>ip local interface Loopback51<br>ip pmtu max 1458<br>interface " + document.pmtu1921gen.pmtu1921input4.value + "<br>no xconnect " + document.pmtu1921gen.pmtu1921input1.value + " " + document.pmtu1921gen.pmtu1921input3.value + " pw-class L2TPv3<br>xconnect " + document.pmtu1921gen.pmtu1921input1.value + " " + document.pmtu1921gen.pmtu1921input3.value + " pw-class L2TPv3UTI1458<br>end<br>write<br>";
+	
+		document.getElementById("commOut").innerHTML = (commands);
+	}
+	
+<!-- Navigation -->
+   $('#gig_port,#EAST_WEST,#OBI_WAN,#asrpolicy,#3400policy,#alupolicy,#asr920base,#920speedbase,#me3400base,#3400speedbase,#alubase,#alu7210speedbase,#alu7750speedbase,#adtran904base,#adtran644base,#adtranfxsbase,#speedupgrade,#reip1921base,#copybutton,#mtu1921base,#pmtu1921base').hide();
+   
+   <!-- ASR 920 -->
+   $("a[href$='#asr920base']").click(function (e) {
+    e.preventDefault();
+    $('#asr920base,#guidelines,#copybutton').show();
+    $('#gig_port,#EAST_WEST,#OBI_WAN,#me3400base, #3400speedbase, #alubase, #adtran904base, #adtran644base, #adtranfxsbase, #alu7210speedbase, #alu7750speedbase, #asrpolicy, #3400policy, #alupolicy, #speedupgrade, #reip1921base, #920speedbase, #mtu1921base, #pmtu1921base').hide();
+	$( "#commOut" ).empty();
+   });
+   
+   <!-- ASR 920 Speed -->
+    $("a[href$='#920speedbase']").click(function (e) {
+    e.preventDefault();
+    $('#920speedbase,#speedupgrade,#asrpolicy,#OBI_WAN,#gig_port,#guidelines,#copybutton').show();
+	$('#me3400base').hide();
+	$('#3400speedbase').hide();
+    $('#asr920base').hide();
+    $('#alubase').hide();
+	$('#adtran904base').hide();
+	$('#adtran644base').hide();
+	$('#adtranfxsbase').hide();
+	$('#EAST_WEST').hide();
+	$('#alu7210speedbase').hide();
+	$('#alu7750speedbase').hide();
+	$('#3400policy').hide();
+	$('#alupolicy').hide();
+	$('#reip1921base').hide();
+	$('#mtu1921base').hide();
+	$('#pmtu1921base').hide();
+	$( "#commOut" ).empty();
+   });
+   
+   <!-- ME 3400 -->
+    $("a[href$='#me3400base']").click(function (e) {
+    e.preventDefault();
+    $('#me3400base,#guidelines,#copybutton').show();
+	$('#OBI_WAN').hide();
+	$('#3400speedbase').hide();
+    $('#asr920base').hide();
+	$('#920speedbase').hide();
+    $('#alubase').hide();
+	$('#adtran904base').hide();
+	$('#adtran644base').hide();
+	$('#adtranfxsbase').hide();
+	$('#EAST_WEST').hide();
+	$('#gig_port').hide();
+	$('#alu7210speedbase').hide();
+	$('#asrpolicy').hide();
+	$('#3400policy').hide();
+	$('#alupolicy').hide();
+	$('#speedupgrade').hide();
+	$('#reip1921base').hide();
+	$('#mtu1921base').hide();
+	$('#pmtu1921base').hide();
+	$( "#commOut" ).empty();
+   });
+   
+    <!-- ME 3400 Speed -->
+    $("a[href$='#3400speedbase']").click(function (e) {
+    e.preventDefault();
+    $('#speedupgrade,#3400policy,#OBI_WAN,#3400speedbase,#guidelines,#copybutton').show();
+	$('#me3400base').hide();
+	$('#asr920base').hide();
+	$('#920speedbase').hide();
+    $('#alubase').hide();
+	$('#adtran904base').hide();
+	$('#adtran644base').hide();
+	$('#adtranfxsbase').hide();
+	$('#EAST_WEST').hide();
+	$('#gig_port').hide();
+	$('#alu7210speedbase').hide();
+	$('#alu7750speedbase').hide();
+	$('#asrpolicy').hide();
+	$('#alupolicy').hide();
+	$('#reip1921base').hide();
+	$('#mtu1921base').hide();
+	$('#pmtu1921base').hide();
+	$( "#commOut" ).empty();
+   });
+   
+   <!-- Alcatel -->
+   $("a[href$='#alubase']").click(function (e) {
+    e.preventDefault();
+    $('#alubase,#guidelines,#copybutton').show();
+	$('#alu7210speedbase').hide();
+	$('#OBI_WAN').hide();
+    $('#3400speedbase').hide();
+	$('#asr920base').hide();
+	$('#920speedbase').hide();
+    $('#me3400base').hide();
+	$('#adtran904base').hide();
+	$('#adtran644base').hide();
+	$('#adtranfxsbase').hide();
+	$('#EAST_WEST').hide();
+	$('#gig_port').hide();
+	$('#alu7750speedbase').hide();
+	$('#asrpolicy').hide();
+	$('#3400policy').hide();
+	$('#alupolicy').hide();
+	$('#speedupgrade').hide();
+	$('#reip1921base').hide();
+	$('#mtu1921base').hide();
+	$('#pmtu1921base').hide();
+    $( "#commOut" ).empty();
+   });
+   
+   <!-- ALU 7210 Speed -->
+    $("a[href$='#alu7210speedbase']").click(function (e) {
+    e.preventDefault();
+    $('#speedupgrade,#alupolicy,#OBI_WAN,#alu7210speedbase,#guidelines,#copybutton').show();
+	$('#me3400base').hide();
+	$('#3400speedbase').hide();
+	$('#asr920base').hide();
+	$('#920speedbase').hide();
+    $('#alubase').hide();
+	$('#adtran904base').hide();
+	$('#adtran644base').hide();
+	$('#adtranfxsbase').hide();
+	$('#EAST_WEST').hide();
+	$('#gig_port').hide();
+	$('#alu7750speedbase').hide();
+	$('#asrpolicy').hide();
+	$('#3400policy').hide();
+	$('#reip1921base').hide();
+	$('#mtu1921base').hide();
+	$('#pmtu1921base').hide();
+	$( "#commOut" ).empty();
+   });
+   
+    <!-- ALU 7750 Speed -->
+    $("a[href$='#alu7750speedbase']").click(function (e) {
+    e.preventDefault();
+    $('#speedupgrade,#alupolicy,#OBI_WAN,#alu7750speedbase,#guidelines,#copybutton').show();
+	$('#me3400base').hide();
+	$('#3400speedbase').hide();
+	$('#asr920base').hide();
+	$('#920speedbase').hide();
+    $('#alubase').hide();
+	$('#adtran904base').hide();
+	$('#adtran644base').hide();
+	$('#adtranfxsbase').hide();
+	$('#EAST_WEST').hide();
+	$('#gig_port').hide();
+	$('#alu7210speedbase').hide();
+	$('#asrpolicy').hide();
+	$('#3400policy').hide();
+	$('#reip1921base').hide();
+	$('#mtu1921base').hide();
+	$('#pmtu1921base').hide();
+	$( "#commOut" ).empty();
+   });
+   
+   
+   
+      <!-- Adtran904/908 -->
+   $("a[href$='#adtran904base']").click(function (e) {
+    e.preventDefault();
+    $('#EAST_WEST,#adtran904base,#guidelines,#copybutton').show();
+	$('#OBI_WAN').hide();
+    $('#3400speedbase').hide();
+	$('#asr920base').hide();
+	$('#920speedbase').hide();
+    $('#me3400base').hide();
+	$('#alubase').hide();
+	$('#adtran644base').hide();
+	$('#adtranfxsbase').hide();
+	$('#gig_port').hide();
+	$('#alu7210speedbase').hide();
+	$('#alu7750speedbase').hide();
+	$('#asrpolicy').hide();
+	$('#3400policy').hide();
+	$('#alupolicy').hide();
+	$('#speedupgrade').hide();
+	$('#reip1921base').hide();
+	$('#mtu1921base').hide();
+	$('#pmtu1921base').hide();
+	$( "#commOut" ).empty();
+   });
+   
+         <!-- Adtran644 -->
+   $("a[href$='#adtran644base']").click(function (e) {
+    e.preventDefault();
+    $('#EAST_WEST,#adtran644base,#guidelines,#copybutton').show();
+	$('#OBI_WAN').hide();
+	$('#3400speedbase').hide();
+    $('#asr920base').hide();
+	$('#920speedbase').hide();
+    $('#me3400base').hide();
+	$('#alubase').hide();
+	$('#adtran904base').hide();
+	$('#adtranfxsbase').hide();
+	$('#gig_port').hide();
+	$('#alu7210speedbase').hide();
+	$('#alu7750speedbase').hide();
+	$('#asrpolicy').hide();
+	$('#3400policy').hide();
+	$('#alupolicy').hide();
+	$('#speedupgrade').hide();
+	$('#reip1921base').hide();
+	$('#mtu1921base').hide();
+	$('#pmtu1921base').hide();
+	$( "#commOut" ).empty();
+   });
+   
+            <!-- AdtranFXS -->
+   $("a[href$='#adtranfxsbase']").click(function (e) {
+    e.preventDefault();
+    $('#adtranfxsbase,#guidelines,#copybutton').show();
+	$('#OBI_WAN').hide();
+	$('#3400speedbase').hide();
+    $('#adtran644base').hide();
+    $('#asr920base').hide();
+	$('#920speedbase').hide();
+    $('#me3400base').hide();
+	$('#alubase').hide();
+	$('#adtran904base').hide();
+	$('#EAST_WEST').hide();
+	$('#gig_port').hide();
+	$('#alu7210speedbase').hide();
+	$('#alu7750speedbase').hide();
+	$('#asrpolicy').hide();
+	$('#3400policy').hide();
+	$('#alupolicy').hide();
+	$('#speedupgrade').hide();
+	$('#reip1921base').hide();
+	$('#mtu1921base').hide();
+	$('#pmtu1921base').hide();
+	$( "#commOut" ).empty();
+   });
+   
+           <!-- 1921 Re-Ip -->
+   $("a[href$='#reip1921base']").click(function (e) {
+    e.preventDefault();
+    $('#reip1921base,#guidelines,#copybutton').show();
+	$('#OBI_WAN').hide();
+	$('#3400speedbase').hide();
+    $('#adtran644base').hide();
+    $('#asr920base').hide();
+	$('#920speedbase').hide();
+    $('#me3400base').hide();
+	$('#alubase').hide();
+	$('#adtran904base').hide();
+	$('#EAST_WEST').hide();
+	$('#gig_port').hide();
+	$('#alu7210speedbase').hide();
+	$('#alu7750speedbase').hide();
+	$('#asrpolicy').hide();
+	$('#3400policy').hide();
+	$('#alupolicy').hide();
+	$('#speedupgrade').hide();
+	$('#adtranfxsbase').hide();
+	$('#mtu1921base').hide();
+	$('#pmtu1921base').hide();
+	$( "#commOut" ).empty();
+   });
+   
+          <!-- 1921 MTU -->
+   $("a[href$='#mtu1921base']").click(function (e) {
+    e.preventDefault();
+    $('#mtu1921base,#guidelines,#copybutton').show();
+	$('#OBI_WAN').hide();
+	$('#3400speedbase').hide();
+    $('#adtran644base').hide();
+    $('#asr920base').hide();
+	$('#920speedbase').hide();
+    $('#me3400base').hide();
+	$('#alubase').hide();
+	$('#adtran904base').hide();
+	$('#EAST_WEST').hide();
+	$('#gig_port').hide();
+	$('#alu7210speedbase').hide();
+	$('#alu7750speedbase').hide();
+	$('#asrpolicy').hide();
+	$('#3400policy').hide();
+	$('#alupolicy').hide();
+	$('#speedupgrade').hide();
+	$('#adtranfxsbase').hide();
+	$('#reip1921base').hide();
+	$('#pmtu1921base').hide();
+	$( "#commOut" ).empty();
+   });
+
+             <!-- 1921 PMTU -->
+   $("a[href$='#pmtu1921base']").click(function (e) {
+    e.preventDefault();
+    $('#pmtu1921base,#guidelines,#copybutton').show();
+	$('#OBI_WAN').hide();
+	$('#3400speedbase').hide();
+    $('#adtran644base').hide();
+    $('#asr920base').hide();
+	$('#920speedbase').hide();
+    $('#me3400base').hide();
+	$('#alubase').hide();
+	$('#adtran904base').hide();
+	$('#EAST_WEST').hide();
+	$('#gig_port').hide();
+	$('#alu7210speedbase').hide();
+	$('#alu7750speedbase').hide();
+	$('#asrpolicy').hide();
+	$('#3400policy').hide();
+	$('#alupolicy').hide();
+	$('#speedupgrade').hide();
+	$('#adtranfxsbase').hide();
+	$('#reip1921base').hide();
+	$('#mtu1921base').hide();
+	$( "#commOut" ).empty();
+   });
+   
+   
+   </script>
+
+  </div>
+</body>
+
+</html>
