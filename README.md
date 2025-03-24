@@ -1,15 +1,13 @@
 ######################
-#### # James Washington
-#### # Network Engineer I
+#### # Tsali
 #### # Aded to GITHUB 2019/09/19
 #### # UPDATED 2017/03/08
-#### # Original creation is 2012
+#### # Original creation is sometime in 2012
 #### # Config Generators
 ######################
 
 This is a collection of a couple HTML based configuration generators for various equipment my employer at the time had.
-They are not completed yet for GENERIC use as I removed a lot of stuff that was my company specific, I will work on 
-this over the next several weeks to make it general use capable.
+I removed a lot of stuff that was my company specific, so some things may need to be modified to meet your needs
 
 To install
 1. Log into the server you're installing it in
